@@ -1,0 +1,26 @@
+# Project TODO
+
+- [x] Interface de dashboard RPG avec avatar
+- [x] Système d'onglets personnalisables (Missions, Inventory, Skills, Map)
+- [x] Widget de tâches avec ajout/modification/suppression
+- [x] Widget de notes rapides
+- [x] Mode sombre/clair
+- [x] Drag & Drop pour réorganiser les widgets
+- [x] Export PDF personnalisable (sélection onglets et sections)
+- [x] Synchronisation cloud multi-appareils
+- [x] Authentification utilisateur
+- [x] Base de données pour tâches, notes et préférences
+- [x] Mode hors-ligne avec localStorage
+- [x] Migration automatique des données locales vers le cloud à la première connexion
+- [x] Tableau blanc interactif (canvas libre)
+- [x] Création d'onglets personnalisés
+- [x] Outils de dessin (pinceau, formes, texte)
+- [x] Drag & drop libre des éléments
+- [x] Sauvegarde cloud des créations canvas
+- [ ] Corriger le canvas vide (outils tldraw non chargés)
+- [ ] Widgets déplaçables librement sur l'écran (pas seulement en haut)
+- [ ] Ajouter des sticky notes (notes volantes)
+- [ ] Permettre de créer des widgets personnalisés dans chaque onglet
+- [ ] Supprimer la bulle de conversation de l'avatar
+- [ ] Avatar lumineux en mode nuit
+- [ ] Avatar déplaçable sur l'écran
