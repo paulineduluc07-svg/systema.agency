@@ -209,15 +209,39 @@ const normalizeToolChoice = (
   return toolChoice;
 };
 
-const resolveApiUrl = () =>
-  ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
-    ? `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions`
-    : "https://forge.manus.im/v1/chat/completions";
+/**
+ * Resolve the API endpoint and key.
+ * Priority: OPENAI_API_KEY (direct) > BUILT_IN_FORGE_API_KEY (proxy)
+ */
+const resolveApi = (): { url: string; key: string; model: string } => {
+  // 1. Direct OpenAI API (preferred for Life-Command)
+  if (ENV.openaiApiKey && ENV.openaiApiKey.trim().length > 0) {
+    return {
+      url: ENV.openaiApiUrl,
+      key: ENV.openaiApiKey,
+      model: ENV.openaiModel,
+    };
+  }
+
+  // 2. Forge proxy (legacy)
+  if (ENV.forgeApiKey && ENV.forgeApiKey.trim().length > 0) {
+    const baseUrl = ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
+      ? `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions`
+      : "https://forge.manus.im/v1/chat/completions";
+    return {
+      url: baseUrl,
+      key: ENV.forgeApiKey,
+      model: "gemini-2.5-flash",
+    };
+  }
+
+  throw new Error(
+    "No AI API key configured. Set OPENAI_API_KEY or BUILT_IN_FORGE_API_KEY in your .env file."
+  );
+};
 
 const assertApiKey = () => {
-  if (!ENV.forgeApiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
-  }
+  resolveApi(); // Will throw if no key is configured
 };
 
 const normalizeResponseFormat = ({
@@ -266,7 +290,7 @@ const normalizeResponseFormat = ({
 };
 
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
-  assertApiKey();
+  const api = resolveApi();
 
   const {
     messages,
@@ -280,7 +304,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   } = params;
 
   const payload: Record<string, unknown> = {
-    model: "gemini-2.5-flash",
+    model: api.model,
     messages: messages.map(normalizeMessage),
   };
 
@@ -296,9 +320,12 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.tool_choice = normalizedToolChoice;
   }
 
-  payload.max_tokens = 32768
-  payload.thinking = {
-    "budget_tokens": 128
+  // Set max tokens (OpenAI uses max_tokens, Gemini uses max_tokens too)
+  payload.max_tokens = params.maxTokens ?? params.max_tokens ?? 4096;
+
+  // Only add thinking for Gemini models (not supported by OpenAI)
+  if (api.model.startsWith("gemini")) {
+    payload.thinking = { budget_tokens: 128 };
   }
 
   const normalizedResponseFormat = normalizeResponseFormat({
@@ -312,11 +339,13 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.response_format = normalizedResponseFormat;
   }
 
-  const response = await fetch(resolveApiUrl(), {
+  console.log(`[LLM] Calling ${api.model} at ${api.url}`);
+
+  const response = await fetch(api.url, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
+      authorization: `Bearer ${api.key}`,
     },
     body: JSON.stringify(payload),
   });

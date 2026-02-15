@@ -2,8 +2,37 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { invokeLLM } from "./_core/llm";
+import type { Message as LLMMessage } from "./_core/llm";
 import { z } from "zod";
 import * as db from "./db";
+
+// Life-Command AI System Prompt
+const LIFE_COMMAND_SYSTEM_PROMPT = `Tu es l'assistant Life-Command, un compagnon IA personnel qui aide l'utilisateur à organiser ses pensées, idées, notes et projets.
+
+Tu es intégré dans l'application Systema Agency — un tableau de bord interactif avec des widgets, un whiteboard, et des outils de productivité.
+
+Tes capacités :
+- Répondre aux questions et discuter de manière naturelle en français
+- Aider à organiser les idées et projets
+- Catégoriser automatiquement le contenu dans ces catégories : Science, Technologie, Histoire, Philosophie, Mathématiques, Santé, Économie, Psychologie, Langues, Art, Autre
+- Résumer des textes et extraire les concepts clés
+- Proposer des actions concrètes et des prochaines étapes
+- Aider à la réflexion et au brainstorming
+
+Ton style :
+- Tu es chaleureux, enthousiaste et encourageant
+- Tu utilises des emojis de manière naturelle (pas excessive)
+- Tu es concis mais utile
+- Tu t'adaptes au contexte de la conversation
+- Tu suggères proactivement comment organiser l'information
+
+Quand l'utilisateur partage du contenu (texte, idée, note, bookmark), tu dois :
+1. Comprendre le contenu
+2. Proposer une catégorie
+3. Extraire 3-5 concepts clés
+4. Résumer en 1-2 phrases
+5. Suggérer où le ranger visuellement`;
 
 export const appRouter = router({
   system: systemRouter,
@@ -252,6 +281,98 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         await db.deleteCustomTab(input.id, ctx.user.id);
         return { success: true };
+      }),
+  }),
+
+  // AI Chat API — Life-Command Agent
+  ai: router({
+    chat: publicProcedure
+      .input(z.object({
+        messages: z.array(z.object({
+          role: z.enum(["system", "user", "assistant"]),
+          content: z.string(),
+        })),
+      }))
+      .mutation(async ({ input }) => {
+        // Build messages with system prompt
+        const llmMessages: LLMMessage[] = [
+          { role: "system", content: LIFE_COMMAND_SYSTEM_PROMPT },
+          ...input.messages
+            .filter(m => m.role !== "system") // Remove any client-side system messages
+            .map(m => ({
+              role: m.role as "user" | "assistant",
+              content: m.content,
+            })),
+        ];
+
+        try {
+          const result = await invokeLLM({ messages: llmMessages });
+          const content = result.choices?.[0]?.message?.content;
+
+          // Handle content that might be an array or string
+          const textContent = typeof content === "string"
+            ? content
+            : Array.isArray(content)
+              ? content.filter(c => c.type === "text").map(c => (c as { type: "text"; text: string }).text).join("")
+              : "Désolé, je n'ai pas pu générer de réponse.";
+
+          return {
+            response: textContent,
+            model: result.model,
+            usage: result.usage,
+          };
+        } catch (error: any) {
+          console.error("AI Chat error:", error);
+          return {
+            response: "❌ Désolé, une erreur est survenue. Vérifie que les clés API sont configurées dans le .env (BUILT_IN_FORGE_API_KEY).",
+            model: "error",
+            usage: null,
+          };
+        }
+      }),
+
+    // Categorize content for the Life-Command pipeline
+    categorize: publicProcedure
+      .input(z.object({
+        content: z.string(),
+        type: z.enum(["memo", "bookmark", "idea", "document", "photo"]).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const categorizationPrompt = `Analyse le contenu suivant et retourne un JSON avec cette structure exacte :
+{
+  "title": "titre court",
+  "summary": "résumé en 1-2 phrases",
+  "category": "une parmi: Science, Technologie, Histoire, Philosophie, Mathématiques, Santé, Économie, Psychologie, Langues, Art, Autre",
+  "key_concepts": ["concept1", "concept2", "concept3"],
+  "importance": "une parmi: Essentiel, Important, Utile, Référence",
+  "suggested_action": "action suggérée"
+}
+
+Type de contenu: ${input.type || "memo"}
+Contenu: ${input.content}`;
+
+        const llmMessages: LLMMessage[] = [
+          { role: "system", content: "Tu es un système de catégorisation intelligent. Réponds uniquement en JSON valide, sans markdown." },
+          { role: "user", content: categorizationPrompt },
+        ];
+
+        try {
+          const result = await invokeLLM({ messages: llmMessages });
+          const content = result.choices?.[0]?.message?.content;
+          const textContent = typeof content === "string" ? content : "";
+
+          // Try to parse JSON from the response
+          const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            return { success: true, data: parsed };
+          }
+
+          return { success: false, data: null };
+        } catch (error: any) {
+          console.error("Categorization error:", error);
+          return { success: false, data: null };
+        }
       }),
   }),
 
