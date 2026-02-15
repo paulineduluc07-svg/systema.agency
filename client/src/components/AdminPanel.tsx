@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useConfig } from "@/contexts/ConfigContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -53,46 +53,47 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
     }
   }, [serverTabs]);
 
+  // Close on Escape key
+  const handleEscape = useCallback((e: KeyboardEvent) => {
+    if (e.key === "Escape") onClose();
+  }, [onClose]);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener("keydown", handleEscape);
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = "hidden";
+    }
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "";
+    };
+  }, [isOpen, handleEscape]);
+
   if (!isOpen) return null;
 
   const handleSave = async () => {
-    // Save local config (theme, default tabs)
     updateConfig(localConfig);
-
-    // Save custom tabs to server if authenticated
     if (isAuthenticated) {
       try {
-        // Process deletions
         const deletedTabs = customTabs.filter(t => t.isDeleted && !t.isNew);
         for (const tab of deletedTabs) {
           await deleteTabMutation.mutateAsync({ id: tab.id });
         }
-
-        // Process new tabs
         const newTabs = customTabs.filter(t => t.isNew && !t.isDeleted);
         for (const tab of newTabs) {
           await createTabMutation.mutateAsync({
-            tabId: tab.tabId,
-            label: tab.label,
-            color: tab.color,
-            icon: tab.icon,
-            tabType: tab.tabType,
-            sortOrder: tab.sortOrder,
+            tabId: tab.tabId, label: tab.label, color: tab.color,
+            icon: tab.icon, tabType: tab.tabType, sortOrder: tab.sortOrder,
           });
         }
-
-        // Process updates (existing tabs that are not deleted)
         const updatedTabs = customTabs.filter(t => !t.isNew && !t.isDeleted);
         for (const tab of updatedTabs) {
           await updateTabMutation.mutateAsync({
-            id: tab.id,
-            label: tab.label,
-            color: tab.color,
-            icon: tab.icon,
-            sortOrder: tab.sortOrder,
+            id: tab.id, label: tab.label, color: tab.color,
+            icon: tab.icon, sortOrder: tab.sortOrder,
           });
         }
-
         await refetchTabs();
         toast.success("Paramètres sauvegardés !");
       } catch (error) {
@@ -100,93 +101,49 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
         console.error(error);
       }
     }
-
     onClose();
   };
 
   const handleColorChange = (key: keyof typeof config.theme, value: string) => {
-    setLocalConfig({
-      ...localConfig,
-      theme: { ...localConfig.theme, [key]: value }
-    });
+    setLocalConfig({ ...localConfig, theme: { ...localConfig.theme, [key]: value } });
   };
 
-  // Default tabs management
   const addTab = () => {
     const newId = `tab-${Date.now()}`;
-    setLocalConfig({
-      ...localConfig,
-      tabs: [...localConfig.tabs, { id: newId, label: "New Tab", color: "bg-gray-500" }]
-    });
+    setLocalConfig({ ...localConfig, tabs: [...localConfig.tabs, { id: newId, label: "New Tab", color: "bg-gray-500" }] });
   };
 
   const removeTab = (id: string) => {
-    setLocalConfig({
-      ...localConfig,
-      tabs: localConfig.tabs.filter(t => t.id !== id)
-    });
+    setLocalConfig({ ...localConfig, tabs: localConfig.tabs.filter(t => t.id !== id) });
   };
 
   const updateTab = (id: string, field: string, value: string) => {
-    setLocalConfig({
-      ...localConfig,
-      tabs: localConfig.tabs.map(t => t.id === id ? { ...t, [field]: value } : t)
-    });
+    setLocalConfig({ ...localConfig, tabs: localConfig.tabs.map(t => t.id === id ? { ...t, [field]: value } : t) });
   };
 
-  // Custom tabs management (cloud-synced)
   const addCustomTab = (type: TabType) => {
     const newTabId = `custom-${Date.now()}`;
     const newTab: CustomTab = {
-      id: Date.now(), // Temporary ID
-      tabId: newTabId,
+      id: Date.now(), tabId: newTabId,
       label: type === "whiteboard" ? "Nouveau Canvas" : "Nouvel Onglet",
-      color: "#FF69B4",
-      icon: type === "whiteboard" ? "pen-tool" : "layout",
-      tabType: type,
-      sortOrder: customTabs.length,
-      isNew: true,
+      color: "#FF69B4", icon: type === "whiteboard" ? "pen-tool" : "layout",
+      tabType: type, sortOrder: customTabs.length, isNew: true,
     };
     setCustomTabs([...customTabs, newTab]);
     setPendingChanges(true);
   };
 
   const removeCustomTab = (tabId: string) => {
-    setCustomTabs(customTabs.map(t => 
-      t.tabId === tabId ? { ...t, isDeleted: true } : t
-    ));
+    setCustomTabs(customTabs.map(t => t.tabId === tabId ? { ...t, isDeleted: true } : t));
     setPendingChanges(true);
   };
 
   const updateCustomTab = (tabId: string, field: keyof CustomTab, value: string) => {
-    setCustomTabs(customTabs.map(t => 
-      t.tabId === tabId ? { ...t, [field]: value } : t
-    ));
+    setCustomTabs(customTabs.map(t => t.tabId === tabId ? { ...t, [field]: value } : t));
     setPendingChanges(true);
   };
 
   const visibleCustomTabs = customTabs.filter(t => !t.isDeleted);
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl border-4 border-gray-800 dark:border-gray-600 flex flex-col">
-        
-        {/* Header */}
-        <div className="p-4 border-b-2 border-gray-100 dark:border-gray-700 flex justify-between items-center sticky top-0 bg-white dark:bg-gray-900 z-10">
-          <h2 className="font-display font-bold text-2xl text-gray-800 dark:text-gray-100">Paramètres</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-            <X className="w-6 h-6 text-gray-500 dark:text-gray-400" />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-8">
-          
-          {/* Custom Tabs Section (Cloud-synced) */}
-          {isAuthenticated && (
-            <section>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-display font-bold text-lg text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                  ✨ Mes Espaces Personnalisés
                 </h3>
               </div>
               
