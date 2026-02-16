@@ -18,7 +18,11 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
 
   if (!isUnauthorized) return;
 
-  window.location.href = getLoginUrl();
+  const loginUrl = getLoginUrl();
+  // Don't redirect if OAuth is not configured (offline mode)
+  if (!loginUrl) return;
+
+  window.location.href = loginUrl;
 };
 
 queryClient.getQueryCache().subscribe(event => {
@@ -42,30 +46,11 @@ const trpcClient = trpc.createClient({
     httpBatchLink({
       url: "/api/trpc",
       transformer: superjson,
-      async fetch(input, init) {
-        const response = await globalThis.fetch(input, {
+      fetch(input, init) {
+        return globalThis.fetch(input, {
           ...(init ?? {}),
           credentials: "include",
         });
-
-        // Detect non-JSON responses (e.g. Vercel returning HTML when backend is unavailable)
-        const contentType = response.headers.get("content-type") ?? "";
-        if (!contentType.includes("application/json")) {
-          // Return a proper TRPC-shaped error response instead of crashing on JSON parse
-          const errorBody = JSON.stringify([{
-            error: {
-              message: "Backend indisponible \u2014 mode hors-ligne activ\u00e9",
-              code: -32603,
-              data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 503 },
-            },
-          }]);
-          return new Response(errorBody, {
-            status: 503,
-            headers: { "content-type": "application/json" },
-          });
-        }
-
-        return response;
       },
     }),
   ],
