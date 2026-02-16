@@ -73,77 +73,140 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
   if (!isOpen) return null;
 
   const handleSave = async () => {
+    // Save local config (theme, default tabs)
     updateConfig(localConfig);
+
+    // Save custom tabs to server if authenticated
     if (isAuthenticated) {
       try {
+        // Process deletions
         const deletedTabs = customTabs.filter(t => t.isDeleted && !t.isNew);
         for (const tab of deletedTabs) {
           await deleteTabMutation.mutateAsync({ id: tab.id });
         }
+
+        // Process new tabs
         const newTabs = customTabs.filter(t => t.isNew && !t.isDeleted);
         for (const tab of newTabs) {
           await createTabMutation.mutateAsync({
-            tabId: tab.tabId, label: tab.label, color: tab.color,
-            icon: tab.icon, tabType: tab.tabType, sortOrder: tab.sortOrder,
+            tabId: tab.tabId,
+            label: tab.label,
+            color: tab.color,
+            icon: tab.icon,
+            tabType: tab.tabType,
+            sortOrder: tab.sortOrder,
           });
         }
+
+        // Process updates (existing tabs that are not deleted)
         const updatedTabs = customTabs.filter(t => !t.isNew && !t.isDeleted);
         for (const tab of updatedTabs) {
           await updateTabMutation.mutateAsync({
-            id: tab.id, label: tab.label, color: tab.color,
-            icon: tab.icon, sortOrder: tab.sortOrder,
+            id: tab.id,
+            label: tab.label,
+            color: tab.color,
+            icon: tab.icon,
+            sortOrder: tab.sortOrder,
           });
         }
+
         await refetchTabs();
-        toast.success("Paramètres sauvegardés !");
+        toast.success("ParamÃ¨tres sauvegardÃ©s !");
       } catch (error) {
         toast.error("Erreur lors de la sauvegarde");
         console.error(error);
       }
     }
+
     onClose();
   };
 
   const handleColorChange = (key: keyof typeof config.theme, value: string) => {
-    setLocalConfig({ ...localConfig, theme: { ...localConfig.theme, [key]: value } });
+    setLocalConfig({
+      ...localConfig,
+      theme: { ...localConfig.theme, [key]: value }
+    });
   };
 
+  // Default tabs management
   const addTab = () => {
     const newId = `tab-${Date.now()}`;
-    setLocalConfig({ ...localConfig, tabs: [...localConfig.tabs, { id: newId, label: "New Tab", color: "bg-gray-500" }] });
+    setLocalConfig({
+      ...localConfig,
+      tabs: [...localConfig.tabs, { id: newId, label: "New Tab", color: "bg-gray-500" }]
+    });
   };
 
   const removeTab = (id: string) => {
-    setLocalConfig({ ...localConfig, tabs: localConfig.tabs.filter(t => t.id !== id) });
+    setLocalConfig({
+      ...localConfig,
+      tabs: localConfig.tabs.filter(t => t.id !== id)
+    });
   };
 
   const updateTab = (id: string, field: string, value: string) => {
-    setLocalConfig({ ...localConfig, tabs: localConfig.tabs.map(t => t.id === id ? { ...t, [field]: value } : t) });
+    setLocalConfig({
+      ...localConfig,
+      tabs: localConfig.tabs.map(t => t.id === id ? { ...t, [field]: value } : t)
+    });
   };
 
+  // Custom tabs management (cloud-synced)
   const addCustomTab = (type: TabType) => {
     const newTabId = `custom-${Date.now()}`;
     const newTab: CustomTab = {
-      id: Date.now(), tabId: newTabId,
+      id: Date.now(), // Temporary ID
+      tabId: newTabId,
       label: type === "whiteboard" ? "Nouveau Canvas" : "Nouvel Onglet",
-      color: "#FF69B4", icon: type === "whiteboard" ? "pen-tool" : "layout",
-      tabType: type, sortOrder: customTabs.length, isNew: true,
+      color: "#FF69B4",
+      icon: type === "whiteboard" ? "pen-tool" : "layout",
+      tabType: type,
+      sortOrder: customTabs.length,
+      isNew: true,
     };
     setCustomTabs([...customTabs, newTab]);
     setPendingChanges(true);
   };
 
   const removeCustomTab = (tabId: string) => {
-    setCustomTabs(customTabs.map(t => t.tabId === tabId ? { ...t, isDeleted: true } : t));
+    setCustomTabs(customTabs.map(t => 
+      t.tabId === tabId ? { ...t, isDeleted: true } : t
+    ));
     setPendingChanges(true);
   };
 
   const updateCustomTab = (tabId: string, field: keyof CustomTab, value: string) => {
-    setCustomTabs(customTabs.map(t => t.tabId === tabId ? { ...t, [field]: value } : t));
+    setCustomTabs(customTabs.map(t => 
+      t.tabId === tabId ? { ...t, [field]: value } : t
+    ));
     setPendingChanges(true);
   };
 
   const visibleCustomTabs = customTabs.filter(t => !t.isDeleted);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl border-4 border-gray-800 dark:border-gray-600 flex flex-col">
+        
+        {/* Header */}
+        <div className="p-4 border-b-2 border-gray-100 dark:border-gray-700 flex justify-between items-center sticky top-0 bg-white dark:bg-gray-900 z-10">
+          <h2 className="font-display font-bold text-2xl text-gray-800 dark:text-gray-100">ParamÃ¨tres</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+            <X className="w-6 h-6 text-gray-500 dark:text-gray-400" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-8">
+          
+          {/* Custom Tabs Section (Cloud-synced) */}
+          {isAuthenticated && (
+            <section>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-display font-bold text-lg text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                  â¨ Mes Espaces PersonnalisÃ©s
                 </h3>
               </div>
               
@@ -203,7 +266,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                 ))}
                 {visibleCustomTabs.length === 0 && (
                   <div className="text-center py-6 text-gray-400 dark:text-gray-500 text-sm">
-                    Créez votre premier espace personnalisé !
+                    CrÃ©ez votre premier espace personnalisÃ© !
                   </div>
                 )}
               </div>
@@ -213,7 +276,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
           {/* Theme Section */}
           <section>
             <h3 className="font-display font-bold text-lg text-gray-600 dark:text-gray-300 mb-4 flex items-center gap-2">
-              🎨 Couleurs du Thème
+              ð¨ Couleurs du ThÃ¨me
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -253,7 +316,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                 </div>
               </div>
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase block mb-1">Arrière-plan</label>
+                <label className="text-xs font-bold text-gray-400 uppercase block mb-1">ArriÃ¨re-plan</label>
                 <div className="flex gap-2">
                   <input 
                     type="color" 
@@ -277,7 +340,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
           <section>
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-display font-bold text-lg text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                📑 Onglets par Défaut
+                ð Onglets par DÃ©faut
               </h3>
               <button 
                 onClick={addTab}
@@ -329,7 +392,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
           <section className="pt-4 border-t border-gray-100 dark:border-gray-700">
             <button 
               onClick={() => {
-                if(confirm("Réinitialiser tous les paramètres ?")) {
+                if(confirm("RÃ©initialiser tous les paramÃ¨tres ?")) {
                   resetConfig();
                   setLocalConfig(config);
                   onClose();
@@ -337,13 +400,13 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
               }}
               className="text-sm text-gray-400 hover:text-red-500 flex items-center gap-2 transition-colors"
             >
-              <RotateCcw className="w-4 h-4" /> Réinitialiser
+              <RotateCcw className="w-4 h-4" /> RÃ©initialiser
             </button>
           </section>
 
           {/* Data Management Section */}
           <section className="pt-4 border-t border-gray-100 dark:border-gray-700">
-            <h3 className="font-display font-bold text-lg text-gray-600 dark:text-gray-300 mb-4">💾 Gestion des Données</h3>
+            <h3 className="font-display font-bold text-lg text-gray-600 dark:text-gray-300 mb-4">ð¾ Gestion des DonnÃ©es</h3>
             <div className="flex gap-3">
               <button 
                 onClick={() => {
@@ -374,7 +437,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                         const importedConfig = JSON.parse(event.target?.result as string);
                         updateConfig(importedConfig);
                         setLocalConfig(importedConfig);
-                        toast.success("Configuration importée !");
+                        toast.success("Configuration importÃ©e !");
                       } catch (err) {
                         toast.error("Fichier de configuration invalide");
                       }
