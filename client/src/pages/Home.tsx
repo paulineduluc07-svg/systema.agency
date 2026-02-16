@@ -1,28 +1,34 @@
-import { useState, useEffect, lazy, Suspense, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useSyncedTasks, useSyncedNotes, useSyncedPreferences } from "@/hooks/useSyncedData";
+import { useSyncedTasks, useSyncedPreferences } from "@/hooks/useSyncedData";
 import { useDataMigration } from "@/hooks/useDataMigration";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useConfig } from "@/contexts/ConfigContext";
-import { useIsMobile } from "@/hooks/useMobile";
-import { GameTabs } from "@/components/GameTabs";
-import { EditableText } from "@/components/EditableText";
 import { AdminPanel } from "@/components/AdminPanel";
 import { NotesWidget } from "@/components/widgets/NotesWidget";
-import { StickyNote } from "@/components/widgets/StickyNote";
 import { ExportDialog } from "@/components/ExportDialog";
-import { Check, Settings, Plus, X, ListTodo, Moon, Sun, Download, LogIn, LogOut, Cloud, CloudOff, Loader2, StickyNote as StickyNoteIcon, FileText, Sparkles, Target, Zap } from "lucide-react";
+import { LifeCommandChat, type AvatarState } from "@/components/LifeCommandChat";
+import { VisionBoard } from "@/components/vision-board/VisionBoard";
+import {
+  Check,
+  Settings,
+  Plus,
+  Moon,
+  Sun,
+  Download,
+  LogIn,
+  LogOut,
+  Cloud,
+  CloudOff,
+  Loader2,
+  MessageCircle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { getLoginUrl } from "@/const";
-import { trpc } from "@/lib/trpc";
-import { motion, AnimatePresence } from "framer-motion";
 
-// Lazy load the Whiteboard component
-const Whiteboard = lazy(() => import("@/components/Whiteboard"));
-
-// Types pour nos donnÃ©es
+// Types
 interface Quest {
   id: number;
   title: string;
@@ -34,99 +40,156 @@ interface Note {
   content: string;
 }
 
-interface CustomTab {
-  id: number;
-  tabId: string;
-  label: string;
-  color: string;
-  icon: string;
-  tabType: "widgets" | "whiteboard";
-  sortOrder: number;
-}
-
 export default function Home() {
-  const { config } = useConfig();
+  const { config, updateConfig } = useConfig();
   const { user, isAuthenticated, logout, loading: authLoading } = useAuth();
   const { isMigrating } = useDataMigration();
-  const isMobile = useIsMobile();
-  const [activeTab, setActiveTab] = useState(config.tabs[0]?.id || "missions");
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
-  const [showAddMenu, setShowAddMenu] = useState(false);
 
-  // Fetch custom tabs from server
-  const { data: customTabs = [] } = trpc.customTabs.list.useQuery(
-    undefined,
-    { enabled: isAuthenticated }
+  // Active zone = active tab for data continuity
+  const [activeZoneId, setActiveZoneId] = usePersistedState<string>(
+    "active_zone",
+    config.zones?.[0]?.id || "carriere"
   );
 
-  // Synced preferences
+  // Life-Command Chat & Avatar state
+  const [isChatOpen, setIsChatOpen] = usePersistedState<boolean>("lc_chat_open", false);
+  const [avatarState, setAvatarState] = useState<AvatarState>("idle");
+
+  // Synced preferences — force dark mode for vision board
   const { darkMode, setDarkMode } = useSyncedPreferences();
 
-  // Synced tasks and notes
-  const { tasks, addTask, toggleTask, updateTaskTitle, deleteTask } = useSyncedTasks(activeTab);
+  // Synced tasks for the active zone
+  const { tasks, addTask, toggleTask, updateTaskTitle, deleteTask } =
+    useSyncedTasks(activeZoneId);
 
-  // Sticky notes data
-  const [stickyNotes, setStickyNotes] = usePersistedState<{[key: string]: string}>(`sticky_notes_${activeTab}`, {});
-  const [stickyNotesList, setStickyNotesList] = usePersistedState<string[]>(`sticky_ids_${activeTab}`, []);
+  // Force dark mode on mount for vision board
+  useEffect(() => {
+    if (!darkMode) setDarkMode(true);
+  }, []);
 
-  // Combine default tabs with custom tabs
-  const allTabs = [
-    ...config.tabs,
-    ...customTabs.map((t: CustomTab) => ({
-      id: t.tabId,
-      label: t.label,
-      color: t.color,
-      tabType: t.tabType,
-      icon: t.icon,
-    }))
-  ];
-
-  // Check if current tab is a whiteboard
-  const currentCustomTab = customTabs.find((t: CustomTab) => t.tabId === activeTab);
-  const isWhiteboardTab = currentCustomTab?.tabType === "whiteboard";
-
-  // Appliquer la classe dark au body
+  // Apply dark class
   useEffect(() => {
     if (darkMode) {
-      document.documentElement.classList.add('dark');
+      document.documentElement.classList.add("dark");
     } else {
-      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.remove("dark");
     }
   }, [darkMode]);
+
+  // ─── Zone position management ──────────────────────────────
+  // Called by VisionBoard only on drag end (not every frame — perf handled internally)
+  const handleZonePositionChange = useCallback(
+    (zoneId: string, x: number, y: number) => {
+      const updatedZones = (config.zones || []).map((z) =>
+        z.id === zoneId ? { ...z, position: { x, y } } : z
+      );
+      updateConfig({ ...config, zones: updatedZones });
+    },
+    [config, updateConfig]
+  );
+
+  const handleZoneDragEnd = useCallback(
+    (_zoneId: string) => {
+      // Position already flushed via handleZonePositionChange
+    },
+    []
+  );
 
   const handleLogin = () => {
     window.location.href = getLoginUrl();
   };
 
-  const addStickyNote = () => {
-    const newId = `sticky-${Date.now()}`;
-    setStickyNotesList(prev => [...prev, newId]);
-    setShowAddMenu(false);
-  };
+  // Render zone content (tasks + notes for any zone)
+  const renderZoneContent = useCallback(
+    (zoneId: string) => {
+      return (
+        <div className="h-full flex flex-col gap-3 p-1">
+          {/* Tasks section */}
+          <div className="flex-1 min-h-0">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs font-semibold text-pink-500">
+                Tâches
+              </span>
+              <span className="bg-pink-100 text-pink-600 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                {tasks.filter((q) => q.completed).length}/{tasks.length}
+              </span>
+            </div>
+            <div className="space-y-1.5 overflow-y-auto max-h-[140px] pr-1">
+              {tasks.length === 0 && (
+                <div className="text-center py-3 text-gray-400 text-xs italic">
+                  Aucune tâche
+                </div>
+              )}
+              {tasks.map((quest) => (
+                <div
+                  key={quest.id}
+                  className="flex items-start gap-2 p-1.5 rounded-lg bg-pink-50 border border-pink-200/60 group relative"
+                >
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleTask(quest.id);
+                    }}
+                    className={cn(
+                      "mt-0.5 w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0",
+                      quest.completed
+                        ? "bg-green-500 border-green-600 text-white"
+                        : "bg-white border-pink-300"
+                    )}
+                  >
+                    <Check className="w-2.5 h-2.5" />
+                  </button>
+                  <span
+                    className={cn(
+                      "text-[11px] leading-tight text-gray-700 flex-1",
+                      quest.completed && "line-through text-gray-400"
+                    )}
+                  >
+                    {quest.title}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                addTask("Nouvelle tâche");
+              }}
+              className="mt-2 w-full flex items-center justify-center gap-1 py-1 rounded-lg bg-pink-50 hover:bg-pink-100 text-pink-500 text-xs transition-colors border border-pink-200/50"
+            >
+              <Plus className="w-3 h-3" />
+              Ajouter
+            </button>
+          </div>
 
-  const removeStickyNote = (id: string) => {
-    setStickyNotesList(prev => prev.filter(sid => sid !== id));
-    setStickyNotes(prev => {
-      const updated = { ...prev };
-      delete updated[id];
-      return updated;
-    });
-  };
+          {/* Notes section */}
+          <div className="border-t border-pink-200/50 pt-2">
+            <span className="text-xs font-semibold text-pink-500 mb-1 block">
+              Notes
+            </span>
+            <NotesWidget contextId={zoneId} />
+          </div>
+        </div>
+      );
+    },
+    [tasks, addTask, toggleTask, updateTaskTitle, deleteTask]
+  );
 
-  const handleStickyNoteChange = (id: string, content: string) => {
-    setStickyNotes(prev => ({ ...prev, [id]: content }));
-  };
-
-  // Stats for dashboard summary
-  const completedTasks = tasks.filter(q => q.completed).length;
-  const totalTasks = tasks.length;
-  const pendingTasks = totalTasks - completedTasks;
-
-  // PDF Export
-  const handleExport = (selectedTabs: string[], includeTasks: boolean, includeNotes: boolean) => {
+  // PDF Export (kept for compatibility)
+  const handleExport = (
+    selectedTabs: string[],
+    includeTasks: boolean,
+    includeNotes: boolean
+  ) => {
     const doc = new jsPDF();
-    const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const today = new Date().toLocaleDateString("fr-FR", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
 
     doc.setFontSize(22);
     doc.setTextColor(255, 105, 180);
@@ -138,7 +201,9 @@ export default function Home() {
 
     let yPos = 40;
 
-    const tabsToExport = config.tabs.filter(tab => selectedTabs.includes(tab.id));
+    const tabsToExport = config.tabs.filter((tab) =>
+      selectedTabs.includes(tab.id)
+    );
 
     tabsToExport.forEach((tab) => {
       const storedQuests = localStorage.getItem(`rpg_quests_${tab.id}`);
@@ -158,19 +223,19 @@ export default function Home() {
       yPos += 10;
 
       if (hasTasks) {
-        const tasksData = tabQuests.map(q => [
+        const tasksData = tabQuests.map((q) => [
           q.title,
-          q.completed ? "TerminÃ©" : "Ã faire"
+          q.completed ? "Terminé" : "À faire",
         ]);
 
         autoTable(doc, {
           startY: yPos,
-          head: [['TÃ¢che', 'Statut']],
+          head: [["Tâche", "Statut"]],
           body: tasksData,
-          theme: 'striped',
+          theme: "striped",
           headStyles: { fillColor: [255, 105, 180] },
           styles: { fontSize: 10 },
-          margin: { left: 14 }
+          margin: { left: 14 },
         });
 
         // @ts-ignore
@@ -183,12 +248,12 @@ export default function Home() {
         doc.text("Notes :", 14, yPos);
         yPos += 7;
 
-        tabNotes.forEach(note => {
+        tabNotes.forEach((note) => {
           doc.setFontSize(10);
           doc.setTextColor(50);
-          const splitText = doc.splitTextToSize(`â¢ ${note.content}`, 180);
+          const splitText = doc.splitTextToSize(`• ${note.content}`, 180);
           doc.text(splitText, 14, yPos);
-          yPos += (splitText.length * 5) + 2;
+          yPos += splitText.length * 5 + 2;
         });
         yPos += 10;
       }
@@ -199,367 +264,127 @@ export default function Home() {
       }
     });
 
-    doc.save(`Rapport_Systema_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`Rapport_Systema_${new Date().toISOString().split("T")[0]}.pdf`);
   };
 
-  // Current tab label for display
-  const currentTabLabel = allTabs.find(t => t.id === activeTab)?.label || activeTab;
-
   return (
-    <div className="min-h-screen flex flex-col bg-[#FFF9F0] dark:bg-[#121212] transition-colors duration-300">
+    <div className="relative w-full h-screen overflow-hidden">
+      {/* Vision Board — Main View */}
+      <VisionBoard
+        zones={config.zones || []}
+        avatarState={avatarState}
+        isChatOpen={isChatOpen}
+        onChatToggle={() => setIsChatOpen(!isChatOpen)}
+        darkMode={darkMode}
+        renderZoneContent={renderZoneContent}
+        onZonePositionChange={handleZonePositionChange}
+        onZoneDragEnd={handleZoneDragEnd}
+      />
 
-      {/* ââ Header & Tabs Bar ââ */}
-      <header className="sticky top-0 z-30 bg-[#FFF9F0]/95 dark:bg-[#121212]/95 backdrop-blur-sm pt-2 pb-1 px-2 flex items-center gap-2 shadow-sm transition-colors duration-300">
-        {/* Sync Status */}
+      {/* Floating Toolbar — Top Right */}
+      <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
+        {/* Sync indicator */}
         <div className="shrink-0">
           {isMigrating ? (
-            <div className="flex items-center gap-1 text-blue-500 text-xs" title="Migration en cours...">
+            <div
+              className="flex items-center gap-1 text-blue-400 text-xs"
+              title="Migration en cours..."
+            >
               <Loader2 className="w-3 h-3 animate-spin" />
             </div>
           ) : isAuthenticated ? (
-            <div className="flex items-center gap-1 text-green-500 text-xs" title="SynchronisÃ©">
+            <div
+              className="flex items-center gap-1 text-green-400 text-xs"
+              title="Synchronisé"
+            >
               <Cloud className="w-3 h-3" />
             </div>
           ) : (
-            <div className="flex items-center gap-1 text-gray-400 text-xs" title="Mode hors-ligne">
+            <div
+              className="flex items-center gap-1 text-gray-500 text-xs"
+              title="Mode hors-ligne"
+            >
               <CloudOff className="w-3 h-3" />
             </div>
           )}
         </div>
 
-        {/* Tabs */}
-        <div className="flex-1 overflow-hidden">
-          <GameTabs tabs={allTabs} activeTab={activeTab} onTabChange={setActiveTab} />
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <button
-            onClick={() => setIsExportOpen(true)}
-            className="p-2 bg-white dark:bg-card rounded-full border border-gray-200 dark:border-gray-700 shadow-sm hover:scale-105 transition-all"
-            title="Exporter le rapport PDF"
-          >
-            <Download className="w-4 h-4 text-blue-500" />
-          </button>
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="p-2 bg-white dark:bg-card rounded-full border border-gray-200 dark:border-gray-700 shadow-sm hover:scale-105 transition-all"
-          >
-            {darkMode ? (
-              <Sun className="w-4 h-4 text-yellow-400" />
-            ) : (
-              <Moon className="w-4 h-4 text-indigo-600" />
-            )}
-          </button>
-          {isAuthenticated ? (
-            <button
-              onClick={logout}
-              className="p-2 bg-white dark:bg-card rounded-full border border-gray-200 dark:border-gray-700 shadow-sm hover:scale-105 transition-all"
-              title="DÃ©connexion"
-            >
-              <LogOut className="w-4 h-4 text-red-500" />
-            </button>
-          ) : (
-            <button
-              onClick={handleLogin}
-              className="p-2 bg-pink-500 rounded-full shadow-sm hover:scale-105 transition-all"
-              title="Connexion pour synchroniser"
-            >
-              <LogIn className="w-4 h-4 text-white" />
-            </button>
+        {/* Chat toggle */}
+        <button
+          onClick={() => setIsChatOpen(!isChatOpen)}
+          className={cn(
+            "p-2 rounded-full border shadow-sm hover:scale-105 transition-all backdrop-blur-sm",
+            isChatOpen
+              ? "bg-pink-500 border-pink-500 text-white"
+              : "bg-white/80 border-gray-200 text-pink-500 hover:bg-pink-50"
           )}
+          title="Life-Command Chat"
+        >
+          <MessageCircle className="w-4 h-4" />
+        </button>
+
+        {/* Export */}
+        <button
+          onClick={() => setIsExportOpen(true)}
+          className="p-2 bg-white/80 backdrop-blur-sm rounded-full border border-gray-200 shadow-sm hover:scale-105 transition-all"
+          title="Exporter le rapport PDF"
+        >
+          <Download className="w-4 h-4 text-blue-500" />
+        </button>
+
+        {/* Dark/Light toggle */}
+        <button
+          onClick={() => setDarkMode(!darkMode)}
+          className="p-2 bg-white/80 backdrop-blur-sm rounded-full border border-gray-200 shadow-sm hover:scale-105 transition-all"
+        >
+          {darkMode ? (
+            <Sun className="w-4 h-4 text-yellow-500" />
+          ) : (
+            <Moon className="w-4 h-4 text-indigo-500" />
+          )}
+        </button>
+
+        {/* Auth */}
+        {isAuthenticated ? (
           <button
-            onClick={() => setIsAdminOpen(true)}
-            className="p-2 bg-white dark:bg-card rounded-full border border-gray-200 dark:border-gray-700 shadow-sm hover:scale-105 transition-all"
+            onClick={logout}
+            className="p-2 bg-white/80 backdrop-blur-sm rounded-full border border-gray-200 shadow-sm hover:scale-105 transition-all"
+            title="Déconnexion"
           >
-            <Settings className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+            <LogOut className="w-4 h-4 text-red-400" />
           </button>
-        </div>
-      </header>
-
-      {/* ââ Main Content ââ */}
-      <main className="flex-1 relative z-10">
-        {isWhiteboardTab ? (
-          /* ââ Whiteboard Mode ââ */
-          <Suspense fallback={
-            <div className="w-full h-[calc(100vh-60px)] flex items-center justify-center">
-              <Loader2 className="w-8 h-8 animate-spin text-pink-500" />
-            </div>
-          }>
-            <div className="w-full h-[calc(100vh-60px)]">
-              <Whiteboard tabId={activeTab} />
-            </div>
-          </Suspense>
         ) : (
-          /* ââ Dashboard Grid Mode ââ */
-          <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
-
-            {/* ââ Avatar + Summary Hero Section ââ */}
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-pink-50 via-white to-amber-50 dark:from-pink-950/20 dark:via-gray-900 dark:to-amber-950/20 border-2 border-pink-200/50 dark:border-pink-800/30 shadow-lg"
-            >
-              <div className="flex flex-col sm:flex-row items-center gap-4 p-4 sm:p-6">
-                {/* Avatar */}
-                <div className="relative shrink-0">
-                  <img
-                    src="/avatar-transparent.png"
-                    alt="Life Command Avatar"
-                    className={cn(
-                      "h-32 sm:h-44 object-contain animate-breathe",
-                      darkMode && "brightness-125 contrast-110"
-                    )}
-                    style={{
-                      filter: darkMode ? 'brightness(1.3) saturate(1.1)' : 'none'
-                    }}
-                  />
-                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-pink-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
-                    Life Command
-                  </div>
-                </div>
-
-                {/* Summary Stats */}
-                <div className="flex-1 w-full">
-                  <h2 className="font-display font-bold text-lg sm:text-xl text-gray-800 dark:text-gray-100 mb-3 text-center sm:text-left">
-                    {currentTabLabel}
-                  </h2>
-                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                    {/* Total tasks */}
-                    <div className="bg-white/80 dark:bg-gray-800/60 rounded-xl p-3 text-center border border-pink-100 dark:border-pink-900/30 shadow-sm">
-                      <Target className="w-5 h-5 text-pink-500 mx-auto mb-1" />
-                      <div className="font-display font-bold text-xl sm:text-2xl text-gray-800 dark:text-gray-100">
-                        {totalTasks}
-                      </div>
-                      <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium">
-                        TÃ¢ches
-                      </div>
-                    </div>
-                    {/* Completed */}
-                    <div className="bg-white/80 dark:bg-gray-800/60 rounded-xl p-3 text-center border border-green-100 dark:border-green-900/30 shadow-sm">
-                      <Sparkles className="w-5 h-5 text-green-500 mx-auto mb-1" />
-                      <div className="font-display font-bold text-xl sm:text-2xl text-green-600 dark:text-green-400">
-                        {completedTasks}
-                      </div>
-                      <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium">
-                        TerminÃ©es
-                      </div>
-                    </div>
-                    {/* Pending */}
-                    <div className="bg-white/80 dark:bg-gray-800/60 rounded-xl p-3 text-center border border-amber-100 dark:border-amber-900/30 shadow-sm">
-                      <Zap className="w-5 h-5 text-amber-500 mx-auto mb-1" />
-                      <div className="font-display font-bold text-xl sm:text-2xl text-amber-600 dark:text-amber-400">
-                        {pendingTasks}
-                      </div>
-                      <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium">
-                        En cours
-                      </div>
-                    </div>
-                  </div>
-                  {/* Progress bar */}
-                  {totalTasks > 0 && (
-                    <div className="mt-3">
-                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <motion.div
-                          className="h-full bg-gradient-to-r from-pink-500 to-green-400 rounded-full"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${(completedTasks / totalTasks) * 100}%` }}
-                          transition={{ duration: 0.5, ease: "easeOut" }}
-                        />
-                      </div>
-                      <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 text-right">
-                        {Math.round((completedTasks / totalTasks) * 100)}% complÃ©tÃ©
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.section>
-
-            {/* ââ Widgets Grid ââ */}
-            <div className={cn(
-              "grid gap-4 sm:gap-6",
-              isMobile ? "grid-cols-1" : "grid-cols-2"
-            )}>
-
-              {/* ââ Tasks Widget ââ */}
-              <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 }}
-                className="panel-game p-4 sm:p-5 flex flex-col min-h-[280px]"
-              >
-                <div className="flex justify-between items-center mb-3 shrink-0">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-pink-500 rounded-lg">
-                      <ListTodo className="w-4 h-4 text-white" />
-                    </div>
-                    <h3 className="font-display font-bold text-base text-gray-800 dark:text-gray-100">TÃ¢ches</h3>
-                    <span className="bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-300 px-2 py-0.5 rounded-full text-[10px] font-bold">
-                      {completedTasks}/{totalTasks}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => addTask("Nouvelle tÃ¢che")}
-                    className={cn(
-                      "rounded-xl px-3 py-1.5 font-bold text-xs text-white",
-                      "bg-gradient-to-b from-pink-500 to-pink-600",
-                      "shadow-[0_3px_0_0] shadow-pink-700/50",
-                      "hover:translate-y-[1px] hover:shadow-[0_2px_0_0]",
-                      "active:translate-y-[3px] active:shadow-none",
-                      "transition-all duration-100 flex items-center gap-1"
-                    )}
-                  >
-                    <Plus className="w-3 h-3" /> Ajouter
-                  </button>
-                </div>
-
-                <div className="space-y-2 overflow-y-auto custom-scrollbar pr-1 flex-1 min-h-0">
-                  {tasks.length === 0 ? (
-                    <EmptyState
-                      icon={<ListTodo className="w-8 h-8 text-pink-300 dark:text-pink-700" />}
-                      title="Aucune tÃ¢che pour l'instant"
-                      subtitle="Clique sur Â« Ajouter Â» pour crÃ©er ta premiÃ¨re tÃ¢che"
-                      accentColor="pink"
-                    />
-                  ) : (
-                    tasks.map((quest) => (
-                      <motion.div
-                        key={quest.id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 10 }}
-                        className="flex items-start gap-2 p-2.5 rounded-xl border bg-pink-50/50 dark:bg-pink-900/10 border-pink-100 dark:border-pink-800/30 group relative shrink-0 transition-colors hover:border-pink-300 dark:hover:border-pink-700"
-                      >
-                        <button
-                          onClick={() => toggleTask(quest.id)}
-                          className={cn(
-                            "mt-0.5 w-5 h-5 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all",
-                            quest.completed
-                              ? "bg-green-400 border-green-500 text-white dark:bg-green-600 dark:border-green-700 scale-110"
-                              : "bg-white dark:bg-gray-800 border-pink-300 dark:border-pink-700 hover:border-pink-500"
-                          )}
-                        >
-                          {quest.completed && <Check className="w-3 h-3" />}
-                        </button>
-                        <div className="flex-1 min-w-0">
-                          <EditableText
-                            initialValue={quest.title}
-                            onSave={(val) => updateTaskTitle(quest.id, val)}
-                            className={cn(
-                              "text-sm font-medium leading-tight bg-transparent w-full break-words dark:text-gray-200",
-                              quest.completed && "line-through text-gray-400 dark:text-gray-600"
-                            )}
-                          />
-                        </div>
-                        <button
-                          onClick={() => deleteTask(quest.id)}
-                          className="absolute -right-1.5 -top-1.5 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 shadow-sm"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </motion.div>
-                    ))
-                  )}
-                </div>
-              </motion.section>
-
-              {/* ââ Notes Widget ââ */}
-              <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.15 }}
-                className="min-h-[280px]"
-              >
-                <NotesWidget contextId={activeTab} />
-              </motion.section>
-            </div>
-
-            {/* ââ Sticky Notes Section ââ */}
-            {stickyNotesList.length > 0 && (
-              <motion.section
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.3, delay: 0.2 }}
-              >
-                <h3 className="font-display font-bold text-sm text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2">
-                  <StickyNoteIcon className="w-4 h-4" /> Notes Volantes
-                </h3>
-                <div className={cn(
-                  "grid gap-3",
-                  isMobile ? "grid-cols-1" : "grid-cols-2 lg:grid-cols-3"
-                )}>
-                  {stickyNotesList.map((noteId) => (
-                    <div key={noteId} className="relative group">
-                      <StickyNote
-                        id={noteId}
-                        content={stickyNotes[noteId] || ''}
-                        onChange={handleStickyNoteChange}
-                      />
-                      <button
-                        onClick={() => removeStickyNote(noteId)}
-                        className="absolute -right-1.5 -top-1.5 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </motion.section>
-            )}
-
-            {/* ââ FAB: Add Widget ââ */}
-            <div className="fixed bottom-6 right-6 z-40">
-              <div className="relative">
-                <AnimatePresence>
-                  {showAddMenu && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                      className="absolute bottom-14 right-0 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-2 min-w-[180px]"
-                    >
-                      <button
-                        onClick={() => { addTask("Nouvelle tÃ¢che"); setShowAddMenu(false); }}
-                        className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-left"
-                      >
-                        <ListTodo className="w-4 h-4 text-pink-500" />
-                        <span className="text-sm font-medium dark:text-gray-200">Nouvelle tÃ¢che</span>
-                      </button>
-                      <button
-                        onClick={addStickyNote}
-                        className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-left"
-                      >
-                        <StickyNoteIcon className="w-4 h-4 text-yellow-500" />
-                        <span className="text-sm font-medium dark:text-gray-200">Note volante</span>
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <button
-                  onClick={() => setShowAddMenu(!showAddMenu)}
-                  className={cn(
-                    "w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all",
-                    "bg-gradient-to-b from-pink-500 to-pink-600 text-white",
-                    "shadow-[0_4px_0_0] shadow-pink-700/50",
-                    "hover:translate-y-[1px] hover:shadow-[0_3px_0_0]",
-                    "active:translate-y-[3px] active:shadow-none",
-                    showAddMenu && "rotate-45"
-                  )}
-                >
-                  <Plus className="w-6 h-6" />
-                </button>
-              </div>
-            </div>
-
-            {/* Bottom spacer for FAB */}
-            <div className="h-16" />
-          </div>
+          <button
+            onClick={handleLogin}
+            className="p-2 bg-pink-500/80 backdrop-blur-sm rounded-full shadow-sm hover:scale-105 transition-all"
+            title="Connexion"
+          >
+            <LogIn className="w-4 h-4 text-white" />
+          </button>
         )}
-      </main>
 
+        {/* Settings */}
+        <button
+          onClick={() => setIsAdminOpen(true)}
+          className="p-2 bg-white/80 backdrop-blur-sm rounded-full border border-gray-200 shadow-sm hover:scale-105 transition-all"
+        >
+          <Settings className="w-4 h-4 text-gray-500" />
+        </button>
+      </div>
+
+      {/* Life-Command Chat Panel */}
+      {isChatOpen && (
+        <div className="fixed bottom-4 right-4 z-50 w-[380px] h-[520px]">
+          <LifeCommandChat
+            className="w-full h-full"
+            onAvatarStateChange={setAvatarState}
+            isOpen={isChatOpen}
+            onToggle={() => setIsChatOpen(false)}
+          />
+        </div>
+      )}
+
+      {/* Modals */}
       <AdminPanel isOpen={isAdminOpen} onClose={() => setIsAdminOpen(false)} />
       <ExportDialog
         isOpen={isExportOpen}
@@ -567,36 +392,5 @@ export default function Home() {
         onExport={handleExport}
       />
     </div>
-  );
-}
-
-/* ââ Empty State Component ââ */
-interface EmptyStateProps {
-  icon: React.ReactNode;
-  title: string;
-  subtitle: string;
-  accentColor: 'pink' | 'yellow' | 'blue';
-}
-
-function EmptyState({ icon, title, subtitle, accentColor }: EmptyStateProps) {
-  const bgMap = {
-    pink: 'bg-pink-50 dark:bg-pink-950/20',
-    yellow: 'bg-yellow-50 dark:bg-yellow-950/20',
-    blue: 'bg-blue-50 dark:bg-blue-950/20',
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className={cn(
-        "flex flex-col items-center justify-center py-8 px-4 rounded-xl",
-        bgMap[accentColor]
-      )}
-    >
-      <div className="mb-3 opacity-60">{icon}</div>
-      <p className="font-display font-bold text-sm text-gray-500 dark:text-gray-400 mb-1">{title}</p>
-      <p className="text-xs text-gray-400 dark:text-gray-500 text-center max-w-[200px]">{subtitle}</p>
-    </motion.div>
   );
 }
