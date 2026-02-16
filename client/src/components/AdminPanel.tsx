@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useConfig } from "@/contexts/ConfigContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -53,23 +53,6 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
     }
   }, [serverTabs]);
 
-  // Close on Escape key
-  const handleEscape = useCallback((e: KeyboardEvent) => {
-    if (e.key === "Escape") onClose();
-  }, [onClose]);
-
-  useEffect(() => {
-    if (isOpen) {
-      document.addEventListener("keydown", handleEscape);
-      // Prevent body scroll when modal is open
-      document.body.style.overflow = "hidden";
-    }
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-      document.body.style.overflow = "";
-    };
-  }, [isOpen, handleEscape]);
-
   if (!isOpen) return null;
 
   const handleSave = async () => {
@@ -111,7 +94,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
         }
 
         await refetchTabs();
-        toast.success("ParamÃ¨tres sauvegardÃ©s !");
+        toast.success("Paramètres sauvegardés !");
       } catch (error) {
         toast.error("Erreur lors de la sauvegarde");
         console.error(error);
@@ -185,15 +168,12 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
   const visibleCustomTabs = customTabs.filter(t => !t.isDeleted);
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl border-4 border-gray-800 dark:border-gray-600 flex flex-col">
         
         {/* Header */}
         <div className="p-4 border-b-2 border-gray-100 dark:border-gray-700 flex justify-between items-center sticky top-0 bg-white dark:bg-gray-900 z-10">
-          <h2 className="font-display font-bold text-2xl text-gray-800 dark:text-gray-100">ParamÃ¨tres</h2>
+          <h2 className="font-display font-bold text-2xl text-gray-800 dark:text-gray-100">Paramètres</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
             <X className="w-6 h-6 text-gray-500 dark:text-gray-400" />
           </button>
@@ -206,7 +186,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
             <section>
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-display font-bold text-lg text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                  â¨ Mes Espaces PersonnalisÃ©s
+                  ✨ Mes Espaces Personnalisés
                 </h3>
               </div>
               
@@ -266,7 +246,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                 ))}
                 {visibleCustomTabs.length === 0 && (
                   <div className="text-center py-6 text-gray-400 dark:text-gray-500 text-sm">
-                    CrÃ©ez votre premier espace personnalisÃ© !
+                    Créez votre premier espace personnalisé !
                   </div>
                 )}
               </div>
@@ -276,7 +256,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
           {/* Theme Section */}
           <section>
             <h3 className="font-display font-bold text-lg text-gray-600 dark:text-gray-300 mb-4 flex items-center gap-2">
-              ð¨ Couleurs du ThÃ¨me
+              🎨 Couleurs du Thème
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -316,7 +296,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                 </div>
               </div>
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase block mb-1">ArriÃ¨re-plan</label>
+                <label className="text-xs font-bold text-gray-400 uppercase block mb-1">Arrière-plan</label>
                 <div className="flex gap-2">
                   <input 
                     type="color" 
@@ -340,7 +320,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
           <section>
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-display font-bold text-lg text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                ð Onglets par DÃ©faut
+                📑 Onglets par Défaut
               </h3>
               <button 
                 onClick={addTab}
@@ -392,7 +372,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
           <section className="pt-4 border-t border-gray-100 dark:border-gray-700">
             <button 
               onClick={() => {
-                if(confirm("RÃ©initialiser tous les paramÃ¨tres ?")) {
+                if(confirm("Réinitialiser tous les paramètres ?")) {
                   resetConfig();
                   setLocalConfig(config);
                   onClose();
@@ -400,13 +380,13 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
               }}
               className="text-sm text-gray-400 hover:text-red-500 flex items-center gap-2 transition-colors"
             >
-              <RotateCcw className="w-4 h-4" /> RÃ©initialiser
+              <RotateCcw className="w-4 h-4" /> Réinitialiser
             </button>
           </section>
 
           {/* Data Management Section */}
           <section className="pt-4 border-t border-gray-100 dark:border-gray-700">
-            <h3 className="font-display font-bold text-lg text-gray-600 dark:text-gray-300 mb-4">ð¾ Gestion des DonnÃ©es</h3>
+            <h3 className="font-display font-bold text-lg text-gray-600 dark:text-gray-300 mb-4">💾 Gestion des Données</h3>
             <div className="flex gap-3">
               <button 
                 onClick={() => {
@@ -437,7 +417,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                         const importedConfig = JSON.parse(event.target?.result as string);
                         updateConfig(importedConfig);
                         setLocalConfig(importedConfig);
-                        toast.success("Configuration importÃ©e !");
+                        toast.success("Configuration importée !");
                       } catch (err) {
                         toast.error("Fichier de configuration invalide");
                       }
