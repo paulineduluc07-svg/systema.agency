@@ -23,6 +23,7 @@ import {
   Loader2,
   MessageCircle,
 } from "lucide-react";
+import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -362,6 +363,16 @@ export default function Home() {
             <LogIn className="w-4 h-4 text-white" />
           </button>
         )}
+
+        {/* Suivi */}
+        <Link href="/suivi">
+          <button
+            className="p-2 bg-white/80 backdrop-blur-sm rounded-full border border-orange-200 shadow-sm hover:scale-105 transition-all"
+            title="Suivi de prise"
+          >
+            <span className="text-sm leading-none">💊</span>
+          </button>
+        </Link>
 
         {/* Settings */}
         <button
