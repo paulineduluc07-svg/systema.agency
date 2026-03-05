@@ -1,9 +1,8 @@
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 
-// ─── Decorative stars ─────────────────────────────────────────────────────
 function Star({ x, y, size = 20, filled = false, delay = 0 }: {
-  x: number; y: number; size?: number; filled?: boolean; delay?: number;
+  x: number | string; y: number; size?: number; filled?: boolean; delay?: number;
 }) {
   return (
     <motion.svg
@@ -25,7 +24,6 @@ function Star({ x, y, size = 20, filled = false, delay = 0 }: {
   );
 }
 
-// ─── Top navigation bar ───────────────────────────────────────────────────
 function FateNav() {
   return (
     <nav
@@ -43,17 +41,16 @@ function FateNav() {
         padding: "12px 32px",
       }}
     >
-      <Link href="/drawn-by-fate">
+      <Link href="/">
         <span style={{ color: "#CC0000", fontFamily: "serif", fontSize: 18, fontWeight: "bold", letterSpacing: 2, cursor: "pointer" }}>
           DRAWN BY FATE
         </span>
       </Link>
       <div style={{ display: "flex", gap: 24 }}>
         {[
-          { href: "/drawn-by-fate", label: "Oracle" },
-          { href: "/drawn-by-fate/mon-tirage", label: "Mon Tirage" },
-          { href: "/drawn-by-fate/book", label: "Le Livre" },
-          { href: "/drawn-by-fate/guide", label: "Les Cartes" },
+          { href: "/", label: "Oracle" },
+          { href: "/book", label: "Le Livre" },
+          { href: "/guide", label: "Les Cartes" },
         ].map(({ href, label }) => (
           <Link key={href} href={href}>
             <span
@@ -78,7 +75,6 @@ function FateNav() {
   );
 }
 
-// ─── Main layout wrapper ──────────────────────────────────────────────────
 export function FateLayout({ children }: { children: React.ReactNode }) {
   return (
     <div
@@ -92,8 +88,6 @@ export function FateLayout({ children }: { children: React.ReactNode }) {
       }}
     >
       <FateNav />
-
-      {/* Background ambient stars */}
       <Star x={40} y={80} size={14} delay={0} />
       <Star x={120} y={200} size={10} filled delay={0.5} />
       <Star x={85} y={350} size={12} delay={1} />
@@ -103,8 +97,6 @@ export function FateLayout({ children }: { children: React.ReactNode }) {
       <Star x="calc(100vw - 40px)" y={280} size={10} filled delay={0.8} />
       <Star x="calc(100vw - 80px)" y={420} size={18} delay={1.2} />
       <Star x="calc(100vw - 30px)" y={580} size={12} filled delay={1.8} />
-
-      {/* Subtle red vignette */}
       <div
         style={{
           position: "fixed",
@@ -114,7 +106,6 @@ export function FateLayout({ children }: { children: React.ReactNode }) {
           zIndex: 1,
         }}
       />
-
       <div style={{ position: "relative", zIndex: 2, paddingTop: 64 }}>
         {children}
       </div>
@@ -122,7 +113,6 @@ export function FateLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ─── Retro title with stars ───────────────────────────────────────────────
 export function FateTitle({ children, subtitle }: { children: React.ReactNode; subtitle?: string }) {
   return (
     <div style={{ textAlign: "center", padding: "40px 20px 20px" }}>
@@ -132,7 +122,6 @@ export function FateTitle({ children, subtitle }: { children: React.ReactNode; s
         transition={{ duration: 0.8 }}
         style={{ position: "relative", display: "inline-block" }}
       >
-        {/* Stars around title */}
         <motion.span
           style={{ position: "absolute", left: -40, top: -10, fontSize: 22, color: "#CC0000" }}
           animate={{ rotate: [0, 15, -15, 0] }}
@@ -147,21 +136,6 @@ export function FateTitle({ children, subtitle }: { children: React.ReactNode; s
         >
           ✦
         </motion.span>
-        <motion.span
-          style={{ position: "absolute", left: -20, top: 20, fontSize: 14, color: "#CC000088" }}
-          animate={{ opacity: [0.4, 1, 0.4] }}
-          transition={{ duration: 2.5, repeat: Infinity, delay: 0.8 }}
-        >
-          ★
-        </motion.span>
-        <motion.span
-          style={{ position: "absolute", right: -20, top: 20, fontSize: 14, color: "#CC000088" }}
-          animate={{ opacity: [0.4, 1, 0.4] }}
-          transition={{ duration: 2.5, repeat: Infinity, delay: 1.3 }}
-        >
-          ★
-        </motion.span>
-
         <h1
           style={{
             fontSize: "clamp(28px, 5vw, 52px)",
@@ -209,7 +183,6 @@ export function FateTitle({ children, subtitle }: { children: React.ReactNode; s
   );
 }
 
-// ─── Decorative divider ───────────────────────────────────────────────────
 export function FateDivider() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "16px 0" }}>
