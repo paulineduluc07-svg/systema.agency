@@ -425,7 +425,7 @@ function ReadingResult({
                 <div style={{ flexShrink: 0 }}>
                   <FlippableCard card={cards[i]} isFlipped size="sm" />
                 </div>
-                <div>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ color: "#5a3030", fontSize: 10, letterSpacing: 2, textTransform: "uppercase", marginBottom: 2 }}>
                     Position {pos?.id} — {pos?.label}
                   </p>
