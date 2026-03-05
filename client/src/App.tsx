@@ -11,6 +11,7 @@ import DrawnByFateLanding from "./pages/drawn-by-fate/DrawnByFateLanding";
 import DrawnByFateReading from "./pages/drawn-by-fate/DrawnByFateReading";
 import DrawnByFateBook from "./pages/drawn-by-fate/DrawnByFateBook";
 import DrawnByFateGuide from "./pages/drawn-by-fate/DrawnByFateGuide";
+import DrawnByFateMonTirage from "./pages/drawn-by-fate/DrawnByFateMonTirage";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -23,6 +24,7 @@ function Router() {
       <Route path={"/drawn-by-fate/reading"} component={DrawnByFateReading} />
       <Route path={"/drawn-by-fate/book"} component={DrawnByFateBook} />
       <Route path={"/drawn-by-fate/guide"} component={DrawnByFateGuide} />
+      <Route path={"/drawn-by-fate/mon-tirage"} component={DrawnByFateMonTirage} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
