@@ -401,6 +401,92 @@ Contenu: ${input.content}`;
         return { success: true };
       }),
   }),
+
+  // Drawn by Fate — Tarot Reading AI
+  tarot: router({
+    getReading: publicProcedure
+      .input(z.object({
+        question: z.string().optional(),
+        subject: z.string().optional(),
+        cards: z.array(z.object({
+          name: z.string(),
+          nameFr: z.string(),
+          upright: z.string(),
+          keywords: z.array(z.string()),
+        })),
+      }))
+      .mutation(async ({ input }) => {
+        const { question, subject, cards } = input;
+
+        const contextParts: string[] = [];
+        if (question) contextParts.push(`Question posée : "${question}"`);
+        if (subject) contextParts.push(`Sujet choisi : ${subject}`);
+        if (contextParts.length === 0) contextParts.push("Lecture libre sans question spécifique");
+
+        const cardsList = cards
+          .map((c, i) => `Carte ${i + 1} : ${c.nameFr} (${c.name}) — Signification : ${c.upright} — Mots-clés : ${c.keywords.join(", ")}`)
+          .join("\n");
+
+        const prompt = `Tu es un lecteur de tarot mystique, sage et bienveillant. Réalise une lecture de tarot en français pour la personne suivante :
+
+${contextParts.join("\n")}
+
+Cartes tirées :
+${cardsList}
+
+Réponds UNIQUEMENT en JSON valide avec cette structure exacte, sans markdown :
+{
+  "cardReadings": [
+    {
+      "cardName": "nom de la carte en français",
+      "interpretation": "interprétation poétique et personnalisée de 2-3 phrases qui relie la signification de la carte directement au contexte de la personne"
+    }
+  ],
+  "overallReading": "message global de 3-4 phrases qui synthétise le message de l'ensemble des cartes, écrit de façon mystique, poétique et bienveillante, en tutoyant la personne"
+}
+
+Règles importantes :
+- Parle directement à la personne (tu/toi/ton/ta)
+- Sois poétique, mystique, mais concret et utile
+- Relie chaque carte à la situation spécifique
+- Le message global doit donner espoir et guidance
+- N'écris rien en dehors du JSON`;
+
+        const llmMessages: LLMMessage[] = [
+          {
+            role: "system",
+            content: "Tu es un lecteur de tarot mystique et bienveillant. Tu réponds toujours en JSON valide uniquement, sans markdown ni texte supplémentaire.",
+          },
+          { role: "user", content: prompt },
+        ];
+
+        try {
+          const result = await invokeLLM({ messages: llmMessages });
+          const content = result.choices?.[0]?.message?.content;
+          const textContent = typeof content === "string" ? content : "";
+
+          // Extract JSON from response
+          const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+          if (!jsonMatch) throw new Error("No JSON found");
+          const parsed = JSON.parse(jsonMatch[0]);
+
+          return {
+            cardReadings: parsed.cardReadings || [],
+            overallReading: parsed.overallReading || "",
+          };
+        } catch {
+          // Fallback: generate basic reading without AI
+          return {
+            cardReadings: cards.map((c) => ({
+              cardName: c.nameFr,
+              interpretation: `La carte ${c.nameFr} t'invite à méditer sur : ${c.upright}. Ses mots-clés — ${c.keywords.join(", ")} — résonnent dans ta situation actuelle.`,
+            })),
+            overallReading:
+              "Les cartes ont parlé avec sagesse. Leur message t'appartient — lis-le avec le cœur ouvert et laisse le destin te guider sur ton chemin.",
+          };
+        }
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

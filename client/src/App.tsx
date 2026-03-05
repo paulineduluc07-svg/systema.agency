@@ -7,6 +7,10 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { ConfigProvider } from "./contexts/ConfigContext";
 import Home from "./pages/Home";
 import { SuiviPage } from "./pages/Suivi";
+import DrawnByFateLanding from "./pages/drawn-by-fate/DrawnByFateLanding";
+import DrawnByFateReading from "./pages/drawn-by-fate/DrawnByFateReading";
+import DrawnByFateBook from "./pages/drawn-by-fate/DrawnByFateBook";
+import DrawnByFateGuide from "./pages/drawn-by-fate/DrawnByFateGuide";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -14,6 +18,11 @@ function Router() {
     <Switch>
       <Route path={"/"} component={Home} />
       <Route path={"/suivi"} component={SuiviPage} />
+      {/* Drawn by Fate — Tarot site */}
+      <Route path={"/drawn-by-fate"} component={DrawnByFateLanding} />
+      <Route path={"/drawn-by-fate/reading"} component={DrawnByFateReading} />
+      <Route path={"/drawn-by-fate/book"} component={DrawnByFateBook} />
+      <Route path={"/drawn-by-fate/guide"} component={DrawnByFateGuide} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
