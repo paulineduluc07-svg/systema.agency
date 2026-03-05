@@ -49,6 +49,7 @@ function FateNav() {
       <div style={{ display: "flex", gap: 24 }}>
         {[
           { href: "/", label: "Oracle" },
+          { href: "/mon-tirage", label: "Mon Tirage" },
           { href: "/book", label: "Le Livre" },
           { href: "/guide", label: "Les Cartes" },
         ].map(({ href, label }) => (
