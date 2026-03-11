@@ -7,6 +7,11 @@ const CATS = [
   { id: "organisation", label: "ORGANISATION", color: "#a29bfe" },
   { id: "creativite", label: "CRÉATIVITÉ", color: "#fd79a8" },
   { id: "analyse", label: "ANALYSE", color: "#55efc4" },
+  { id: "quotidien", label: "QUOTIDIEN", color: "#ff9f7f" },
+  { id: "clarte", label: "CLARTÉ", color: "#74b9ff" },
+  { id: "apprentissage", label: "APPRENTISSAGE", color: "#ffd32a" },
+  { id: "finances", label: "FINANCES", color: "#cd84f1" },
+  { id: "meta", label: "META-PROMPT", color: "#ff5e57" },
 ];
 
 interface Prompt {
@@ -18,17 +23,130 @@ interface Prompt {
 }
 
 const DATA: Prompt[] = [
-  { id:1, cat:"coaching", title:"Clarifier une décision difficile", tags:["décision","clarté","blocage"], text:"Je dois prendre une décision et je tourne en rond. Aide-moi à clarifier en posant 5 questions puissantes, une à la fois. Commence par identifier ce que je veux vraiment VS ce que je crois devoir faire. Situation: [DÉCRIRE ICI]" },
-  { id:2, cat:"coaching", title:"Identifier un pattern répétitif", tags:["pattern","comportement","conscience"], text:"Analyse cette situation que je vis régulièrement et identifie le pattern sous-jacent. Qu'est-ce que ça révèle sur mes croyances ou besoins non comblés? Sois direct, pas doux. Situation récurrente: [DÉCRIRE ICI]" },
-  { id:3, cat:"coaching", title:"Plan d'action 30 jours", tags:["objectif","action","planification"], text:"Crée un plan d'action réaliste sur 30 jours pour atteindre cet objectif. Découpe en semaines, avec 1-2 actions concrètes par jour max. Tiens compte de mon énergie et contraintes. Objectif: [ICI] Contraintes: [ICI]" },
-  { id:4, cat:"tech", title:"Déboguer un workflow Make.com", tags:["make","automation","debug"], text:"Je rencontre une erreur dans mon scénario Make.com. Analyse l'erreur suivante et donne-moi les 3 causes les plus probables avec la solution pour chacune. Sois précis et technique. Erreur: [COLLER ICI] Contexte: [DÉCRIRE]" },
-  { id:5, cat:"tech", title:"Structure table Airtable", tags:["airtable","base de données","structure"], text:"Je veux créer une table Airtable pour [OBJECTIF]. Propose-moi la structure complète: noms des champs, types de champs, et les liaisons avec d'autres tables si pertinent. Optimise pour la facilité d'utilisation et les automatisations Make.com." },
-  { id:6, cat:"tech", title:"Prompt système pour agent IA", tags:["agent","prompt","ia"], text:"Crée un prompt système complet pour un agent IA spécialisé en [DOMAINE]. Inclus: rôle, personnalité, règles de réponse, format de sortie, exemples de cas d'usage. L'agent doit être: [CARACTÉRISTIQUES]" },
-  { id:7, cat:"organisation", title:"Planifier une semaine chargée", tags:["planning","priorités","énergie"], text:"Voici mes tâches et contraintes pour la semaine. Crée un plan réaliste en tenant compte de mon niveau d'énergie (matin=haute, après-midi=moyenne, soir=basse), mes contraintes familiales, et le principe d'une seule tâche majeure par jour. Tâches: [LISTE]" },
-  { id:8, cat:"organisation", title:"Triage de liste de tâches", tags:["priorités","triage","focus"], text:"Voici ma liste de tâches. Classe-les selon la matrice Eisenhower (urgent/important). Pour chaque quadrant, donne-moi l'action recommandée. Identifie les 3 tâches absolument prioritaires aujourd'hui. Tâches: [LISTE]" },
-  { id:9, cat:"analyse", title:"Analyser des données de ventes", tags:["ventes","analyse","insights"], text:"Analyse ces données de ventes et identifie: 1) les tendances principales, 2) les anomalies à investiguer, 3) les opportunités cachées, 4) les recommandations concrètes. Présente sous forme de rapport structuré. Données: [COLLER ICI]" },
-  { id:10, cat:"analyse", title:"Audit processus opérationnel", tags:["processus","audit","optimisation"], text:"Analyse ce processus opérationnel et identifie: les goulots d'étranglement, les étapes redondantes, les risques d'erreur, et propose 3 améliorations concrètes classées par impact/effort. Processus: [DÉCRIRE ICI]" },
-  { id:11, cat:"creativite", title:"Nom + slogan pour projet", tags:["branding","créativité","naming"], text:"Génère 10 noms créatifs pour [DÉCRIRE LE PROJET]. Pour chaque nom: propose un slogan court (max 8 mots), explique l'angle créatif en 1 phrase. Critères: mémorable, prononçable en français et en anglais, évoque [VALEURS CLÉS]." },
+  { id:1, cat:"coaching", title:"Clarifier une décision difficile", tags:["décision","clarté","blocage"], text:`Je dois prendre une décision et je tourne en rond. Aide-moi à clarifier en posant 5 questions puissantes, une à la fois. Commence par identifier ce que je veux vraiment VS ce que je crois devoir faire. Situation: [DÉCRIRE ICI]` },
+  { id:2, cat:"coaching", title:"Identifier un pattern répétitif", tags:["pattern","comportement","conscience"], text:`Analyse cette situation que je vis régulièrement et identifie le pattern sous-jacent. Qu'est-ce que ça révèle sur mes croyances ou besoins non comblés? Sois direct, pas doux. Situation récurrente: [DÉCRIRE ICI]` },
+  { id:3, cat:"coaching", title:"Plan d'action 30 jours", tags:["objectif","action","planification"], text:`Crée un plan d'action réaliste sur 30 jours pour atteindre cet objectif. Découpe en semaines, avec 1-2 actions concrètes par jour max. Tiens compte de mon énergie et contraintes. Objectif: [ICI] Contraintes: [ICI]` },
+  { id:4, cat:"tech", title:"Déboguer un workflow Make.com", tags:["make","automation","debug"], text:`Je rencontre une erreur dans mon scénario Make.com. Analyse l'erreur suivante et donne-moi les 3 causes les plus probables avec la solution pour chacune. Sois précis et technique. Erreur: [COLLER ICI] Contexte: [DÉCRIRE]` },
+  { id:5, cat:"tech", title:"Structure table Airtable", tags:["airtable","base de données","structure"], text:`Je veux créer une table Airtable pour [OBJECTIF]. Propose-moi la structure complète: noms des champs, types de champs, et les liaisons avec d'autres tables si pertinent. Optimise pour la facilité d'utilisation et les automatisations Make.com.` },
+  { id:6, cat:"tech", title:"Prompt système pour agent IA", tags:["agent","prompt","ia"], text:`Crée un prompt système complet pour un agent IA spécialisé en [DOMAINE]. Inclus: rôle, personnalité, règles de réponse, format de sortie, exemples de cas d'usage. L'agent doit être: [CARACTÉRISTIQUES]` },
+  { id:7, cat:"organisation", title:"Planifier une semaine chargée", tags:["planning","priorités","énergie"], text:`Voici mes tâches et contraintes pour la semaine. Crée un plan réaliste en tenant compte de mon niveau d'énergie (matin=haute, après-midi=moyenne, soir=basse), mes contraintes familiales, et le principe d'une seule tâche majeure par jour. Tâches: [LISTE]` },
+  { id:8, cat:"organisation", title:"Triage de liste de tâches", tags:["priorités","triage","focus"], text:`Voici ma liste de tâches. Classe-les selon la matrice Eisenhower (urgent/important). Pour chaque quadrant, donne-moi l'action recommandée. Identifie les 3 tâches absolument prioritaires aujourd'hui. Tâches: [LISTE]` },
+  { id:9, cat:"analyse", title:"Analyser des données de ventes", tags:["ventes","analyse","insights"], text:`Analyse ces données de ventes et identifie: 1) les tendances principales, 2) les anomalies à investiguer, 3) les opportunités cachées, 4) les recommandations concrètes. Présente sous forme de rapport structuré. Données: [COLLER ICI]` },
+  { id:10, cat:"analyse", title:"Audit processus opérationnel", tags:["processus","audit","optimisation"], text:`Analyse ce processus opérationnel et identifie: les goulots d'étranglement, les étapes redondantes, les risques d'erreur, et propose 3 améliorations concrètes classées par impact/effort. Processus: [DÉCRIRE ICI]` },
+  { id:11, cat:"creativite", title:"Nom + slogan pour projet", tags:["branding","créativité","naming"], text:`Génère 10 noms créatifs pour [DÉCRIRE LE PROJET]. Pour chaque nom: propose un slogan court (max 8 mots), explique l'angle créatif en 1 phrase. Critères: mémorable, prononçable en français et en anglais, évoque [VALEURS CLÉS].` },
+
+  // QUOTIDIEN
+  { id:12, cat:"quotidien", title:"Protocole Anti-Procrastination", tags:["procrastination","blocage","action"], text:`Tâche que j'évite constamment : [décrivez la tâche, depuis combien de temps vous la repoussez]
+
+Ne me laissez pas m'en tirer.
+
+Votre rôle :
+- Nommez la vraie raison pour laquelle je suis bloqué (pas l'excuse, mais le véritable obstacle)
+- Dénoncez le mensonge que je me raconte
+- Donnez-moi une action de 2 minutes qui lance l'élan
+- Mettez en place un piège pour que je ne puisse plus me défiler
+
+Règles :
+- Pas de conseils génériques du type "divisez-la en petites étapes"
+- Pas de discours de motivation
+- Traitez-moi comme quelqu'un de capable mais qui stagne
+
+Je n'ai pas besoin de motivation. J'ai besoin d'un coup de pouce.` },
+  { id:13, cat:"quotidien", title:"Anti-Fatigue Décisionnelle", tags:["décision","routine","automatisation"], text:`Créez des systèmes qui réduisent la charge de prise de décision quotidienne.` },
+  { id:14, cat:"quotidien", title:"Organisateur de Tâches Domestiques", tags:["tâches","maison","organisation"], text:`Auditez mes responsabilités domestiques. Triez-les en tâches quotidiennes, hebdomadaires et mensuelles qui semblent réalisables.` },
+  { id:15, cat:"quotidien", title:"Sprint de Désencombrement Numérique", tags:["numérique","nettoyage","sprint"], text:`Soyez mon guide de désintoxication numérique. Créez un sprint de 3 jours pour nettoyer mon téléphone, mon bureau, ma boîte de réception et mon stockage cloud. Incluez des systèmes de nommage de fichiers, des filtres de boîte de réception et une liste de contrôle de réinitialisation mensuelle.` },
+  { id:16, cat:"quotidien", title:"Organisateur de Fichiers Chaotiques", tags:["fichiers","nommage","archivage"], text:`Mon dossier [Téléchargements / Bureau / Documents] est un désastre. J'ai besoin que vous passiez en revue chaque fichier de ce dossier et que vous l'organisiez.
+
+Créez des sous-dossiers par catégorie : Documents, Images, Vidéos, Tableurs, Code, Archives et Divers.
+
+Renommez les fichiers qui ont des noms inutiles comme "IMG_3847" ou "Capture d'écran 2025-12-03" en quelque chose de descriptif basé sur le contenu du fichier. Utilisez le format : AAAA-MM-JJ_nom-descriptif.ext
+
+Créez un fichier journal appelé rapport-nettoyage.md qui montre chaque fichier déplacé, son nouveau nom et pourquoi. Signalez les doublons mais ne les supprimez pas — déplacez-les dans un dossier Doublons pour examen.` },
+  { id:17, cat:"quotidien", title:"Optimiseur de Stockage", tags:["stockage","espace","nettoyage"], text:`Analysez mon stockage : [COLLEZ LES DÉTAILS DU STOCKAGE]. Suggérez des fichiers, des caches et des applications que je peux supprimer ou déplacer pour libérer de l'espace sans rien casser.` },
+
+  // CLARTÉ
+  { id:18, cat:"clarte", title:"Moteur de Décision Personnel", tags:["décision","stratégie","matrice"], text:`Vous êtes mon stratège de décision impitoyable, avec une tolérance zéro pour la paralysie d'analyse.
+
+Décision : [décrivez le choix, les enjeux et les contraintes]
+
+Livrez :
+1. Reformulez en options claires (soit/soit ou plusieurs chemins)
+2. Matrice de critères pondérés (tableau : critères, poids, scores par option)
+3. Pré-mortem pour chaque option ("12 mois plus tard, cela a échoué – que s'est-il passé ?")
+4. Minimisation des regrets (à 80 ans, quel choix entraîne le plus de regrets si NON pris ?)
+5. 10/10/10 (comment me sentirai-je dans 10 minutes / 10 mois / 10 ans ?)
+6. Options cachées que je ne vois pas (combiner, retarder, couvrir, déléguer)
+7. Votre verdict final argumenté avec un paragraphe de justification
+
+Soyez direct. Pas d'hésitation. Aidez-moi à décider, pas à délibérer éternellement.` },
+  { id:19, cat:"clarte", title:"Structurez Ma Pensée Désordonnée", tags:["clarté","organisation","vidage"], text:`Voici un remue-méninges de ce que je pense : [NOTES OU FRAGMENTS]. Organisez cela en une structure ou un plan clair sans changer ma voix ou mes idées.` },
+  { id:20, cat:"clarte", title:"Stratège de Vie — Miroir de Vérité", tags:["vie","vision","vérité"], text:`Agissez en tant que mon Stratège de Vie IA, Coach de Clarté et Miroir de Vérité. Votre rôle est de découvrir ce que je veux vraiment dans la vie — pas ce que la société, la famille, l'argent ou l'ego attendent.
+
+1. Posez-moi 7 questions ultra-ciblées, une à la fois, conçues pour être inconfortables, honnêtes et profondément révélatrices.
+2. Chaque question doit éliminer le désir de plaire, la peur, la comparaison et les fausses ambitions.
+3. Exposez mes vrais désirs, mes frustrations cachées, mes pertes d'énergie, mes regrets et ma définition de la liberté.
+4. Évitez les questions génériques, motivantes ou superficielles.
+5. Après mes réponses, analysez les schémas sans édulcorer la vérité.
+6. Créez un Plan de Clarté 2026 basé strictement sur mes réponses.
+7. Définissez mes 3 Priorités de Vie Principales pour 2026.
+8. Identifiez ce que je dois abandonner immédiatement (habitudes, objectifs, croyances, environnements).
+9. Construisez une feuille de route de clarté et d'action de 30 jours.` },
+  { id:21, cat:"clarte", title:"Thérapeute — Travail de l'Ombre", tags:["ombre","sabotage","traumatisme"], text:`Vous êtes un thérapeute liseur d'esprit avec une formation avancée en travail de l'ombre, coaching informé sur les traumatismes, intégration somatique, théorie de l'attachement et conception d'identité de haute performance.
+
+Vous ne donnez pas de conseils superficiels. Vous effectuez une analyse psychologique spécialisée dans le décodage des cycles de sabotage, des boucles émotionnelles, des traumatismes non résolus, des désirs et potentiels supprimés — avec une clarté terrifiante.
+
+Situation à analyser : [DÉCRIRE ICI]` },
+  { id:22, cat:"clarte", title:"Le Protocole d'Exécution (3 étapes)", tags:["exécution","clarté","jeu vidéo"], text:`Guidez-moi à travers le Protocole d'Exécution en 3 étapes :
+
+Étape 1 — L'Excavation (Matin) : Posez les questions sur mon insatisfaction tolérée, la vérité insupportable que j'évite, et mon Anti-Vision (la vie que je refuse d'avoir).
+
+Étape 2 — La Rupture de Schéma (Journée) : Cartographiez mon Ego et créez des interruptions pour briser mon autopilote. Proposez des alarmes ou rappels ciblés.
+
+Étape 3 — La Synthèse du Jeu Vidéo (Soir) : Créez ma Carte de Jeu avec : La Victoire, Les Enjeux, La Mission, Le Boss de fin, Les Quêtes du jour, Les Règles du jeu.` },
+  { id:23, cat:"clarte", title:"Constructeur de Résilience Mentale", tags:["résilience","habitudes","incertitude"], text:`Concevez des habitudes qui me maintiennent affûté pendant de longues périodes d'incertitude.` },
+
+  // APPRENTISSAGE
+  { id:24, cat:"apprentissage", title:"Configuration du Second Cerveau", tags:["second cerveau","notion","obsidian"], text:`Construisez-moi un système Notion ou Obsidian qui fonctionne comme un second cerveau — incluant la capture de tâches, l'incubation d'idées, les pipelines de projets et la répétition espacée.` },
+  { id:25, cat:"apprentissage", title:"Adaptez-vous à Mon Cerveau", tags:["apprentissage","visuel","style"], text:`J'apprends mieux par [vidéos/exemples/visuels]. Construisez un plan d'apprentissage pour [SUJET] qui correspond à mon style.` },
+  { id:26, cat:"apprentissage", title:"Résumé Visuel Sketchnote", tags:["sketchnote","visuel","résumé"], text:`Créez un résumé visuel de ces notes sous forme de sketchnote dessiné à la main. Fond de papier blanc immaculé (sans lignes). Style : "enregistrement graphique" avec des feutres fins à encre noire. Utilisez des marqueurs de couleur (sarcelle, orange et rouge sourd) pour un ombrage simple. Centrez le titre dans une boîte rectangulaire style 3D. Entourez-le de gribouillis, d'icônes, de bonhommes allumettes et de graphiques répartis radialement. Utilisez des flèches pour relier les idées. Texte manuscrit en majuscules, organisé comme une séance de brainstorming professionnelle. Format A4.
+
+Notes à illustrer : [COLLER ICI]` },
+
+  // FINANCES
+  { id:27, cat:"finances", title:"Planificateur de Survie Financière", tags:["budget","finances","survie"], text:`Si je gagne [MONTANT HEBDOMADAIRE] par semaine, construisez un budget mensuel étanche. Ce budget doit couvrir toutes les dépenses essentielles tout en me permettant de réinvestir une partie pour la croissance de mon entreprise.` },
+  { id:28, cat:"finances", title:"Stratège de Revenus Numériques", tags:["revenus","numérique","débutant"], text:`Basé sur mon expérience en [MON EXPÉRIENCE], suggérez 5 idées de revenus numériques adaptées aux débutants que je peux lancer cette semaine sans coût initial et sans audience existante.` },
+  { id:29, cat:"finances", title:"Architecte d'Offres de Services", tags:["freelance","offre","tarification"], text:`À partir de la liste ci-dessus, sélectionnez l'idée la plus viable. Structurez-la en un service freelance complet. Détaillez ce qu'il faut vendre, comment le tarifer, le client cible idéal et les meilleures plateformes pour le proposer.` },
+  { id:30, cat:"finances", title:"Machine à Contenu de Marque Personnelle", tags:["contenu","marque","calendrier"], text:`Activez le Mode Canevas. Vous êtes mon copilote de contenu à vie. Je téléchargerai ou collerai ma niche, des échantillons de ma voix et mon public cible une seule fois.
+
+Créez un canevas perpétuel appelé "OS de Contenu" avec une grille de calendrier mensuel (thème nébuleuse sombre, cartes en glassmorphism, lueur subtile).
+
+Chaque jour est une carte avec : une idée de publication à forte conviction, et un statut (Non commencé / Brouillon / Publié).
+
+Boutons sur chaque carte :
+1. Rédiger la publication LinkedIn complète + diapositives carrousel
+2. Rédiger le fil X + images mèmes
+3. Rédiger la section newsletter
+4. Rédiger le script YouTube + vignette
+5. Réutiliser tout pour e-mail + Instagram
+
+Nous travaillons un jour à la fois pour toujours. Souvenez-vous de tout ce que nous créons dans ce fil.` },
+
+  // META
+  { id:31, cat:"meta", title:"L'Anatomie d'un Prompt Claude", tags:["prompt","structure","méta"], text:`Structure ultime pour créer vos propres prompts :
+
+1. Objectif : Je veux [TÂCHE] afin que [CRITÈRES DE SUCCÈS].
+
+2. Contexte : D'abord, lisez entièrement ces fichiers avant de répondre.
+
+3. Référence : Voici une référence de ce que je veux accomplir + Voici ce qui fait que cette référence fonctionne.
+
+4. Brief de Succès :
+   - Type de sortie
+   - Réaction du destinataire
+   - Ne doit PAS ressembler à
+   - Le succès signifie
+
+5. Règles : Lisez mon fichier de contexte. Posez des questions de clarification avant de commencer. Donnez-moi votre plan d'exécution (5 étapes maximum).` },
 ];
 
 const gc = (id: string) => CATS.find(c => c.id === id)?.color || "#00f5ff";
@@ -128,14 +246,12 @@ export default function PromptVault() {
 
   return (
     <div style={{ background: "linear-gradient(160deg,#050510 0%,#0a0a1a 50%,#06060f 100%)", minHeight: "100vh", fontFamily: "'Trebuchet MS',sans-serif", color: "#e0e0ff", position: "relative", overflowX: "hidden" }}>
-      {/* BG Grid */}
       <div style={{ position: "fixed", inset: 0, backgroundImage: "linear-gradient(rgba(0,245,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,0.03) 1px,transparent 1px)", backgroundSize: "40px 40px", pointerEvents: "none", zIndex: 0 }} />
       <div style={{ position: "fixed", top: "-80px", left: "-80px", width: "350px", height: "350px", borderRadius: "50%", background: "radial-gradient(circle,rgba(0,245,255,0.07) 0%,transparent 70%)", pointerEvents: "none", zIndex: 0 }} />
       <div style={{ position: "fixed", bottom: "-80px", right: "-80px", width: "400px", height: "400px", borderRadius: "50%", background: "radial-gradient(circle,rgba(162,155,254,0.07) 0%,transparent 70%)", pointerEvents: "none", zIndex: 0 }} />
 
       <div style={{ position: "relative", zIndex: 1, maxWidth: "1100px", margin: "0 auto", padding: "28px 16px" }}>
 
-        {/* HEADER */}
         <div style={{ textAlign: "center", marginBottom: "36px" }}>
           <div style={{ fontSize: "10px", letterSpacing: "6px", color: "#00f5ff", marginBottom: "6px", opacity: 0.7 }}>⬡ SYSTÈME COGNITIF EXTERNE ⬡</div>
           <h1 style={{ fontSize: "clamp(32px,6vw,58px)", fontWeight: 900, letterSpacing: "4px", margin: 0, lineHeight: 1, textTransform: "uppercase" }}>
@@ -153,7 +269,6 @@ export default function PromptVault() {
           </div>
         </div>
 
-        {/* SEARCH + ADD */}
         <div style={{ display: "flex", gap: "9px", marginBottom: "18px" }}>
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="⌕  RECHERCHER..."
             style={{ flex: 1, background: "rgba(0,245,255,0.04)", border: "1px solid rgba(0,245,255,0.25)", borderRadius: "4px", padding: "12px 16px", color: "#e0e0ff", fontSize: "12px", outline: "none", fontFamily: "inherit" }} />
@@ -162,7 +277,6 @@ export default function PromptVault() {
           </button>
         </div>
 
-        {/* ADD FORM */}
         {form && (
           <div style={{ background: "rgba(0,245,255,0.03)", border: "1px solid rgba(0,245,255,0.18)", borderRadius: "6px", padding: "18px", marginBottom: "18px" }}>
             <div style={{ fontSize: "9px", letterSpacing: "3px", color: "#00f5ff", marginBottom: "13px" }}>⬡ NOUVEAU PROMPT</div>
@@ -178,7 +292,6 @@ export default function PromptVault() {
           </div>
         )}
 
-        {/* FILTERS */}
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "24px" }}>
           {CATS.map(c => (
             <button key={c.id} onClick={() => setCat(c.id)} style={tabStyle(cat === c.id, c.color)}>
@@ -189,7 +302,6 @@ export default function PromptVault() {
 
         <div style={{ fontSize: "9px", letterSpacing: "3px", color: "#ffffff22", marginBottom: "16px" }}>▸ {filtered.length} RÉSULTAT{filtered.length !== 1 ? "S" : ""}</div>
 
-        {/* GRID */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(290px,1fr))", gap: "13px" }}>
           {filtered.map((p, idx) => {
             const c = gc(p.cat), isE = exp === p.id, isF = favs.includes(p.id), isC = copied === p.id, isEditing = editId === p.id;
@@ -202,31 +314,19 @@ export default function PromptVault() {
                 onClick={() => !isEditing && setExp(isE ? null : p.id)}
                 style={{ background: "linear-gradient(135deg,rgba(255,255,255,0.03),rgba(0,0,0,0.25))", borderRadius: "8px", padding: "17px", cursor: isEditing ? "default" : "pointer", position: "relative", overflow: "hidden", border: `1px solid ${c}33`, boxShadow: `0 0 18px ${c}18` }}>
 
-                {/* Top gradient line */}
                 <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "2px", background: `linear-gradient(90deg,transparent,${c},transparent)` }} />
 
-                {/* Drag handle */}
-                <div onMouseDown={e => e.stopPropagation()} style={{ textAlign: "center", cursor: "grab", fontSize: "10px", color: "#ffffff18", letterSpacing: "3px", marginBottom: "8px", userSelect: "none" }}>
-                  ⠿ ⠿
-                </div>
+                <div onMouseDown={e => e.stopPropagation()} style={{ textAlign: "center", cursor: "grab", fontSize: "10px", color: "#ffffff18", letterSpacing: "3px", marginBottom: "8px", userSelect: "none" }}>⠿ ⠿</div>
 
-                {/* Header row */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
                   <span style={{ fontSize: "8px", letterSpacing: "2px", color: c, fontWeight: 700, background: `${c}15`, padding: "3px 7px", borderRadius: "2px", border: `1px solid ${c}28` }}>
                     {CATS.find(x => x.id === p.cat)?.label}
                   </span>
                   <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                    {/* Edit button */}
                     <button onClick={e => { e.stopPropagation(); isEditing ? setEditId(null) : startEdit(p); }}
-                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: "12px", color: isEditing ? c : "#ffffff33", padding: 0 }} title="Modifier">
-                      ✏
-                    </button>
-                    {/* Delete button */}
+                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: "12px", color: isEditing ? c : "#ffffff33", padding: 0 }} title="Modifier">✏</button>
                     <button onClick={e => { e.stopPropagation(); del(p.id); }}
-                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: "12px", color: "#ffffff22", padding: 0 }} title="Supprimer">
-                      ✕
-                    </button>
-                    {/* Fav button */}
+                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: "12px", color: "#ffffff22", padding: 0 }} title="Supprimer">✕</button>
                     <button onClick={e => { e.stopPropagation(); setFavs(f => f.includes(p.id) ? f.filter(x => x !== p.id) : [...f, p.id]); }}
                       style={{ background: "none", border: "none", cursor: "pointer", fontSize: "14px", color: isF ? "#eccc68" : "#ffffff18", textShadow: isF ? "0 0 8px #eccc68" : "none", padding: 0 }}>
                       {isF ? "★" : "☆"}
@@ -234,7 +334,6 @@ export default function PromptVault() {
                   </div>
                 </div>
 
-                {/* Inline edit form */}
                 {isEditing ? (
                   <div onClick={e => e.stopPropagation()} style={{ marginTop: "4px" }}>
                     <input value={editData.title} onChange={e => setEditData(d => ({ ...d, title: e.target.value }))} placeholder="TITRE" style={inp} />
@@ -253,7 +352,7 @@ export default function PromptVault() {
                     <div style={{ display: "flex", gap: "5px", flexWrap: "wrap", marginBottom: "9px" }}>
                       {p.tags.map(t => <span key={t} style={{ fontSize: "8px", color: "#ffffff33", border: "1px solid rgba(255,255,255,0.07)", padding: "1px 6px", borderRadius: "2px" }}>{t}</span>)}
                     </div>
-                    <p style={{ fontSize: "11px", color: "#ffffff50", margin: "0 0 13px", lineHeight: 1.7, display: isE ? "block" : "-webkit-box", WebkitLineClamp: isE ? undefined : 3, WebkitBoxOrient: "vertical" as const, overflow: isE ? "visible" : "hidden" }}>
+                    <p style={{ fontSize: "11px", color: "#ffffff50", margin: "0 0 13px", lineHeight: 1.7, whiteSpace: "pre-wrap", display: isE ? "block" : "-webkit-box", WebkitLineClamp: isE ? undefined : 3, WebkitBoxOrient: "vertical" as const, overflow: isE ? "visible" : "hidden" }}>
                       {p.text}
                     </p>
                     <div style={{ display: "flex", gap: "7px", alignItems: "center" }}>
