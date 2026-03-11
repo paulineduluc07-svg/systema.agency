@@ -364,6 +364,16 @@ export default function Home() {
           </button>
         )}
 
+        {/* Prompt Vault */}
+        <Link href="/prompt-vault">
+          <button
+            className="p-2 bg-white/80 backdrop-blur-sm rounded-full border border-cyan-200 shadow-sm hover:scale-105 transition-all"
+            title="Prompt Vault"
+          >
+            <span className="text-sm leading-none">⬡</span>
+          </button>
+        </Link>
+
         {/* Suivi */}
         <Link href="/suivi">
           <button
