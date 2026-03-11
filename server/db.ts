@@ -1,15 +1,15 @@
 import { eq, and } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/neon-http";
+import { neon } from "@neondatabase/serverless";
 import { InsertUser, users, tasks, notes, userPreferences, InsertTask, InsertNote, InsertUserPreferences } from "../drizzle/schema";
-import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      const sql = neon(process.env.DATABASE_URL);
+      _db = drizzle(sql);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -30,9 +30,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   }
 
   try {
-    const values: InsertUser = {
-      openId: user.openId,
-    };
+    const values: InsertUser = { openId: user.openId };
     const updateSet: Record<string, unknown> = {};
 
     const textFields = ["name", "email", "loginMethod"] as const;
@@ -55,9 +53,6 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     if (user.role !== undefined) {
       values.role = user.role;
       updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
     }
 
     if (!values.lastSignedIn) {
@@ -68,7 +63,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.lastSignedIn = new Date();
     }
 
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
+    await db.insert(users).values(values).onConflictDoUpdate({
+      target: users.openId,
       set: updateSet,
     });
   } catch (error) {
@@ -83,9 +79,7 @@ export async function getUserByOpenId(openId: string) {
     console.warn("[Database] Cannot get user: database not available");
     return undefined;
   }
-
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
   return result.length > 0 ? result[0] : undefined;
 }
 
@@ -94,7 +88,6 @@ export async function getUserByOpenId(openId: string) {
 export async function getTasksByUserAndTab(userId: number, tabId: string) {
   const db = await getDb();
   if (!db) return [];
-  
   return db.select().from(tasks)
     .where(and(eq(tasks.userId, userId), eq(tasks.tabId, tabId)))
     .orderBy(tasks.sortOrder);
@@ -103,31 +96,25 @@ export async function getTasksByUserAndTab(userId: number, tabId: string) {
 export async function getAllTasksByUser(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  
   return db.select().from(tasks).where(eq(tasks.userId, userId)).orderBy(tasks.sortOrder);
 }
 
 export async function createTask(task: InsertTask) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  const result = await db.insert(tasks).values(task);
-  return { id: result[0].insertId, ...task };
+  const result = await db.insert(tasks).values(task).returning({ id: tasks.id });
+  return { id: result[0].id, ...task };
 }
 
 export async function updateTask(id: number, userId: number, data: Partial<InsertTask>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  await db.update(tasks)
-    .set(data)
-    .where(and(eq(tasks.id, id), eq(tasks.userId, userId)));
+  await db.update(tasks).set(data).where(and(eq(tasks.id, id), eq(tasks.userId, userId)));
 }
 
 export async function deleteTask(id: number, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
   await db.delete(tasks).where(and(eq(tasks.id, id), eq(tasks.userId, userId)));
 }
 
@@ -136,7 +123,6 @@ export async function deleteTask(id: number, userId: number) {
 export async function getNotesByUserAndTab(userId: number, tabId: string) {
   const db = await getDb();
   if (!db) return [];
-  
   return db.select().from(notes)
     .where(and(eq(notes.userId, userId), eq(notes.tabId, tabId)))
     .orderBy(notes.sortOrder);
@@ -145,31 +131,25 @@ export async function getNotesByUserAndTab(userId: number, tabId: string) {
 export async function getAllNotesByUser(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  
   return db.select().from(notes).where(eq(notes.userId, userId)).orderBy(notes.sortOrder);
 }
 
 export async function createNote(note: InsertNote) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  const result = await db.insert(notes).values(note);
-  return { id: result[0].insertId, ...note };
+  const result = await db.insert(notes).values(note).returning({ id: notes.id });
+  return { id: result[0].id, ...note };
 }
 
 export async function updateNote(id: number, userId: number, data: Partial<InsertNote>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  await db.update(notes)
-    .set(data)
-    .where(and(eq(notes.id, id), eq(notes.userId, userId)));
+  await db.update(notes).set(data).where(and(eq(notes.id, id), eq(notes.userId, userId)));
 }
 
 export async function deleteNote(id: number, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
   await db.delete(notes).where(and(eq(notes.id, id), eq(notes.userId, userId)));
 }
 
@@ -178,7 +158,6 @@ export async function deleteNote(id: number, userId: number) {
 export async function getUserPreferences(userId: number) {
   const db = await getDb();
   if (!db) return null;
-  
   const result = await db.select().from(userPreferences).where(eq(userPreferences.userId, userId)).limit(1);
   return result.length > 0 ? result[0] : null;
 }
@@ -186,18 +165,13 @@ export async function getUserPreferences(userId: number) {
 export async function upsertUserPreferences(userId: number, prefs: Partial<InsertUserPreferences>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  const existing = await getUserPreferences(userId);
-  
-  if (existing) {
-    await db.update(userPreferences)
-      .set(prefs)
-      .where(eq(userPreferences.userId, userId));
-  } else {
-    await db.insert(userPreferences).values({ userId, ...prefs });
-  }
+  await db.insert(userPreferences)
+    .values({ userId, darkMode: false, ...prefs })
+    .onConflictDoUpdate({
+      target: userPreferences.userId,
+      set: prefs,
+    });
 }
-
 
 // ============== CUSTOM TABS ==============
 
@@ -206,31 +180,25 @@ import { customTabs, canvasData, InsertCustomTab, InsertCanvasData } from "../dr
 export async function getCustomTabsByUser(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  
   return db.select().from(customTabs).where(eq(customTabs.userId, userId)).orderBy(customTabs.sortOrder);
 }
 
 export async function createCustomTab(tab: InsertCustomTab) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  const result = await db.insert(customTabs).values(tab);
-  return { id: result[0].insertId, ...tab };
+  const result = await db.insert(customTabs).values(tab).returning({ id: customTabs.id });
+  return { id: result[0].id, ...tab };
 }
 
 export async function updateCustomTab(id: number, userId: number, data: Partial<InsertCustomTab>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  await db.update(customTabs)
-    .set(data)
-    .where(and(eq(customTabs.id, id), eq(customTabs.userId, userId)));
+  await db.update(customTabs).set(data).where(and(eq(customTabs.id, id), eq(customTabs.userId, userId)));
 }
 
 export async function deleteCustomTab(id: number, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
   await db.delete(customTabs).where(and(eq(customTabs.id, id), eq(customTabs.userId, userId)));
 }
 
@@ -239,7 +207,6 @@ export async function deleteCustomTab(id: number, userId: number) {
 export async function getCanvasData(userId: number, tabId: string) {
   const db = await getDb();
   if (!db) return null;
-  
   const result = await db.select().from(canvasData)
     .where(and(eq(canvasData.userId, userId), eq(canvasData.tabId, tabId)))
     .limit(1);
@@ -249,21 +216,16 @@ export async function getCanvasData(userId: number, tabId: string) {
 export async function saveCanvasData(userId: number, tabId: string, data: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  const existing = await getCanvasData(userId, tabId);
-  
-  if (existing) {
-    await db.update(canvasData)
-      .set({ data })
-      .where(and(eq(canvasData.userId, userId), eq(canvasData.tabId, tabId)));
-  } else {
-    await db.insert(canvasData).values({ userId, tabId, data });
-  }
+  await db.insert(canvasData)
+    .values({ userId, tabId, data })
+    .onConflictDoUpdate({
+      target: [canvasData.userId, canvasData.tabId],
+      set: { data },
+    });
 }
 
 export async function deleteCanvasData(userId: number, tabId: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
   await db.delete(canvasData).where(and(eq(canvasData.userId, userId), eq(canvasData.tabId, tabId)));
 }
