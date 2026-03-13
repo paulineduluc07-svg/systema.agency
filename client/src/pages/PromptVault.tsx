@@ -12,6 +12,8 @@ const CATS = [
   { id: "apprentissage", label: "APPRENTISSAGE", color: "#ffd32a" },
   { id: "finances", label: "FINANCES", color: "#cd84f1" },
   { id: "meta", label: "META-PROMPT", color: "#ff5e57" },
+  { id: "neurodivers", label: "NEURODIVERS", color: "#f8a5c2" },
+  { id: "communication", label: "COMMUNICATION", color: "#badc58" },
 ];
 
 interface Prompt {
@@ -130,6 +132,203 @@ Boutons sur chaque carte :
 5. Réutiliser tout pour e-mail + Instagram
 
 Nous travaillons un jour à la fois pour toujours. Souvenez-vous de tout ce que nous créons dans ce fil.` },
+
+  // TECH supplémentaires
+  { id:32, cat:"tech", title:"Créer un webhook Make.com", tags:["make","webhook","api"], text:`Guide-moi pour créer un webhook dans Make.com afin de recevoir des données depuis [SOURCE : ex. formulaire, Stripe, Shopify].
+
+Inclus :
+1. La configuration du module Webhook dans Make
+2. Le format JSON attendu
+3. Comment parser et router les données reçues
+4. Un exemple de scénario complet avec au moins 2 modules après la réception
+
+Source : [DÉCRIRE ICI]
+Action à déclencher : [DÉCRIRE ICI]` },
+
+  { id:33, cat:"tech", title:"Refactoriser du code legacy", tags:["refacto","dette technique","qualité"], text:`Tu es un senior dev expert en refactoring. Analyse ce code et propose une version refactorisée.
+
+Objectifs :
+- Lisibilité maximale
+- Supprimer la duplication
+- Respecter les principes SOLID
+- Ajouter les types TypeScript si applicable
+- Conserver le comportement exact
+
+Donne d'abord un diagnostic rapide (3 points), puis le code refactorisé avec des commentaires sur les changements majeurs.
+
+Code à refactoriser :
+\`\`\`
+[COLLER ICI]
+\`\`\`` },
+
+  { id:34, cat:"tech", title:"Créer une intégration API REST", tags:["api","rest","intégration"], text:`Je dois connecter [SERVICE A] avec [SERVICE B] via leurs APIs REST.
+
+Génère :
+1. Le schéma d'authentification (OAuth2 / API Key / JWT) pour chaque service
+2. Les endpoints clés dont j'ai besoin
+3. Le code d'exemple en JavaScript/TypeScript pour l'appel principal
+4. La gestion d'erreurs et les retry logic
+5. Un exemple de payload de requête et de réponse attendue
+
+Service A : [NOM + URL DOCS]
+Service B : [NOM + URL DOCS]
+Objectif : [DÉCRIRE CE QU'ON VEUT FAIRE]` },
+
+  // COACHING supplémentaires
+  { id:35, cat:"coaching", title:"Dépasser le syndrome de l'imposteur", tags:["imposteur","confiance","blocage"], text:`Je souffre du syndrome de l'imposteur dans le contexte suivant : [DÉCRIRE]
+
+Analyse :
+1. Les distorsions cognitives précises que j'exprime
+2. L'origine probable de cette croyance (1-2 hypothèses)
+3. Les preuves concrètes qui la contredisent (basées sur ce que je décris)
+4. Un recadrage cognitif puissant en 2-3 phrases
+5. Une action immédiate pour agir malgré l'inconfort
+
+Ne me dis pas que c'est normal ou que tout le monde vit ça. Parle-moi de MON cas.` },
+
+  { id:36, cat:"coaching", title:"Identifier mes zones d'énergie", tags:["énergie","productivité","self-awareness"], text:`Je veux comprendre quand et pourquoi je suis en haute ou basse énergie pour optimiser mes journées.
+
+Pose-moi 6 questions stratégiques, une à la fois, sur :
+- Mes activités qui me rechargent vs me vident
+- Mes patterns d'énergie physique et mentale
+- Mes triggers de procrastination
+- Mes conditions idéales de travail
+
+Après mes réponses, crée :
+- Mon profil d'énergie personnalisé
+- Un template de journée idéale basé sur mes cycles
+- 3 règles de protection d'énergie non négociables` },
+
+  // CRÉATIVITÉ supplémentaires
+  { id:37, cat:"creativite", title:"Script de vidéo YouTube", tags:["youtube","script","contenu"], text:`Écris un script complet pour une vidéo YouTube de [DURÉE : ex. 8-10 min] sur le sujet : [SUJET]
+
+Structure :
+- Hook (0-30s) : question ou affirmation choc pour retenir l'attention
+- Intro (30s-1min) : promesse de valeur + accroche personnelle
+- Corps (x sections) : [NOMBRE DE POINTS CLÉS]
+- CTA intermédiaire (à mi-vidéo)
+- Conclusion + CTA final
+
+Style : [DÉCRIRE TON STYLE : ex. éducatif, storytelling, dynamique]
+Audience : [DÉCRIRE ICI]
+Note d'intention : le spectateur doit repartir avec [CE QU'ILS APPRENNENT/RESSENTENT]` },
+
+  { id:38, cat:"creativite", title:"Campagne de lancement produit", tags:["lancement","marketing","produit"], text:`Crée une stratégie de lancement complète pour : [DÉCRIRE LE PRODUIT/SERVICE]
+
+Inclus :
+1. Message central (1 phrase inoubliable)
+2. Séquence de teasing sur 7 jours (quoi poster chaque jour)
+3. 3 angles de contenu différents (éducatif, émotionnel, preuve sociale)
+4. 5 titres de posts accrocheurs
+5. Email de lancement (objet + corps)
+6. Objections principales et comment les retourner
+
+Cible : [DÉCRIRE L'AUDIENCE]
+Prix : [ICI]
+Plateformes : [ICI]` },
+
+  // APPRENTISSAGE supplémentaires
+  { id:39, cat:"apprentissage", title:"Maîtriser un sujet en 30 jours", tags:["apprentissage","rapidité","focus"], text:`Je veux apprendre [SUJET] en 30 jours à raison de [X heures/jour].
+
+Crée un curriculum ultra-structuré :
+- Semaine 1 : Fondations (les 20% qui donnent 80% de résultats)
+- Semaine 2 : Pratique guidée
+- Semaine 3 : Application réelle
+- Semaine 4 : Consolidation + combler les lacunes
+
+Pour chaque semaine :
+- Ressources spécifiques recommandées (gratuit en priorité)
+- Exercices pratiques quotidiens
+- Checkpoint d'évaluation
+
+Mon niveau actuel : [DÉBUTANT/INTERMÉDIAIRE]
+Objectif concret : [CE QUE JE VEUX POUVOIR FAIRE]` },
+
+  // NEURODIVERS
+  { id:40, cat:"neurodivers", title:"Stratégies TDAH — Finir une tâche", tags:["tdah","focus","exécution"], text:`Je suis en mode TDAH et j'arrive pas à finir : [DÉCRIRE LA TÂCHE]
+
+Contexte : [depuis combien de temps, pourquoi c'est bloqué, tentatives déjà faites]
+
+Donne-moi :
+1. Un diagnostic de pourquoi mon cerveau bloque sur CETTE tâche spécifiquement
+2. Une technique de démarrage en moins de 5 minutes (body doubling, temptation bundling, etc.)
+3. Un découpage en micro-tâches de max 10 minutes chacune
+4. Comment utiliser ma fenêtre d'hyperfocus si elle arrive
+5. Un protocole de récupération si je me disperse
+
+Pas de "sois discipliné". Mon cerveau fonctionne différemment. Aide-moi à travailler AVEC lui.` },
+
+  { id:41, cat:"neurodivers", title:"Gérer la surcharge sensorielle", tags:["surcharge","sensoriel","régulation"], text:`Je suis en surcharge sensorielle / cognitive et j'ai besoin d'aide pour redescendre et récupérer.
+
+Situation actuelle : [DÉCRIRE : lieu, niveau de bruit, ce qui se passe]
+Niveau de surcharge (1-10) : [ICI]
+Temps disponible pour récupérer : [ICI]
+
+Donne-moi :
+1. Un protocole de régulation immédiate adapté à mon temps disponible
+2. Des techniques de grounding (5-4-3-2-1, cohérence cardiaque, etc.) adaptées à ma situation
+3. Comment communiquer mon besoin aux autres sans me justifier longuement
+4. Un plan de récupération pour les prochaines 2 heures
+5. Comment éviter que ça se reproduise dans ce contexte` },
+
+  { id:42, cat:"neurodivers", title:"Créer une routine flexible", tags:["routine","flexibilité","régularité"], text:`Mon cerveau résiste aux routines rigides mais j'ai besoin de structure. Aide-moi à créer un système qui fonctionne pour moi.
+
+Mon profil : [TDAH / autisme / hypersensibilité / autre]
+Mes contraintes : [horaires fixes, famille, travail]
+Ce qui a déjà échoué : [LISTER LES TENTATIVES]
+Ce qui fonctionne un peu : [SI QUELQUE CHOSE]
+
+Crée :
+1. Une "ancre de journée" (1 seul ritual non négociable de 5 min)
+2. Des blocs flexibles (pas d'horaires fixes, mais des séquences logiques)
+3. Un système de "menu de tâches" pour les jours dérégulés
+4. Des signaux d'environnement pour remplacer les alarmes
+5. Un protocole de reset pour les jours où tout s'effondre` },
+
+  { id:43, cat:"neurodivers", title:"Préparer une conversation difficile", tags:["communication","préparation","anxiété"], text:`Je dois avoir une conversation difficile et mon cerveau la rejoue en boucle. Aide-moi à me préparer.
+
+Contexte : [avec qui, sur quoi, pourquoi c'est difficile]
+Ma peur principale : [CE QUE JE CRAINS QU'IL SE PASSE]
+Mon objectif pour cette conversation : [CE QUE JE VEUX QU'IL SE PASSE]
+
+Donne-moi :
+1. Un script d'ouverture en 2-3 phrases (non agressif, direct)
+2. Les 3 scénarios possibles et comment y répondre
+3. Comment réguler mon état interne si ça monte en tension
+4. Une phrase de sortie si j'ai besoin de pause
+5. Comment gérer le silence ou les réponses inattendues
+
+Rappel : je traite l'information différemment sous stress. Garde les instructions courtes et concrètes.` },
+
+  // COMMUNICATION
+  { id:44, cat:"communication", title:"Rédiger un email professionnel", tags:["email","pro","rédaction"], text:`Rédige un email professionnel pour la situation suivante.
+
+Contexte : [DÉCRIRE LA SITUATION]
+Destinataire : [QUI, QUEL RAPPORT HIÉRARCHIQUE]
+Objectif de l'email : [CE QUE JE VEUX OBTENIR]
+Ton souhaité : [Direct / Diplomatique / Ferme / Chaleureux]
+
+Contraintes :
+- Max 150 mots
+- Objet accrocheur et clair
+- Appel à l'action explicite en dernière ligne
+- Aucun remplissage ou formule vide
+
+Propose 2 versions : une formelle et une plus directe.` },
+
+  { id:45, cat:"communication", title:"Convaincre sans manipuler", tags:["persuasion","argumentation","influence"], text:`Je dois convaincre [QUI] de [QUOI] dans le contexte suivant : [DÉCRIRE]
+
+Leur position actuelle : [CE QU'ILS PENSENT MAINTENANT]
+Leur objection principale probable : [SI VOUS LE SAVEZ]
+
+Construis un argumentaire éthique basé sur :
+1. Leur intérêt réel (pas ce que vous voulez, ce qu'ils gagnent)
+2. Les preuves ou données pertinentes
+3. Une analogie ou histoire qui parle à leur vécu
+4. La réponse à leur objection principale
+5. Un appel à l'action soft mais clair
+
+Pas de manipulation. Pas de fausses urgences. Juste un argument solide, honnête et adapté à leur perspective.` },
 
   // META
   { id:31, cat:"meta", title:"L'Anatomie d'un Prompt Claude", tags:["prompt","structure","méta"], text:`Structure ultime pour créer vos propres prompts :
