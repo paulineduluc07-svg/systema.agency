@@ -1,5 +1,5 @@
 // client/src/pages/Suivi.tsx
-// Suivi de prise — converti de l'artefact HTML vers TypeScript React
+// Suivi de prise — version simplifiée
 // Préserve le design original exact (Pacifico, inline styles, gradients)
 
 import { useState } from "react";
@@ -19,27 +19,6 @@ interface Category {
   bg: string;
   light: string;
   subs: string[];
-}
-
-interface Quadrant {
-  id: string;
-  label: string;
-  sub: string;
-  color: string;
-  bg: string;
-  subs: string[];
-}
-
-interface PhysEffect {
-  id: string;
-  label: string;
-  color: string;
-}
-
-interface MentEffect {
-  id: string;
-  label: string;
-  color: string;
 }
 
 const CATS: Category[] = [
@@ -90,76 +69,16 @@ const CATS: Category[] = [
   },
 ];
 
-const QUADS: Quadrant[] = [
-  {
-    id: "hh",
-    label: "Énergie haute",
-    sub: "État difficile",
-    color: "#E63946",
-    bg: "linear-gradient(135deg,#FFE8E8,#FFD0D0)",
-    subs: ["Anxieuse", "Agitée", "Stressée", "Dépassée", "Sous pression", "Paniquée"],
-  },
-  {
-    id: "ho",
-    label: "Énergie haute",
-    sub: "État ok",
-    color: "#2D6A4F",
-    bg: "linear-gradient(135deg,#E8F5EE,#D0EDD9)",
-    subs: ["Active", "Déterminée", "Focusée", "Motivée", "Confiante", "Productive"],
-  },
-  {
-    id: "lh",
-    label: "Énergie basse",
-    sub: "État difficile",
-    color: "#457B9D",
-    bg: "linear-gradient(135deg,#E8EFF5,#D0DDE8)",
-    subs: ["Épuisée", "Dans le brouillard", "Triste", "Vide", "Détachée", "Lourde"],
-  },
-  {
-    id: "lo",
-    label: "Énergie basse",
-    sub: "État ok",
-    color: "#778DA9",
-    bg: "linear-gradient(135deg,#F0F3F6,#E2E8EE)",
-    subs: ["Calme", "Stable", "Neutre", "Apaisée", "Posée"],
-  },
-];
-
-const PHYS: PhysEffect[] = [
-  { id: "coeur", label: "Cœur rapide / palpitations", color: "#E63946" },
-  { id: "nausee", label: "Nausée", color: "#C77DFF" },
-  { id: "machoire", label: "Mâchoire serrée", color: "#FF8E53" },
-  { id: "tete", label: "Maux de tête", color: "#778DA9" },
-  { id: "appetit", label: "Appétit coupé", color: "#F4A261" },
-  { id: "tension", label: "Corps tendu", color: "#E76F51" },
-  { id: "crash", label: "Épuisement / crash", color: "#457B9D" },
-  { id: "ok", label: "Corps stable / ok", color: "#2D6A4F" },
-];
-
-const MENT: MentEffect[] = [
-  { id: "focus", label: "Focusée, productive", color: "#2D6A4F" },
-  { id: "legere", label: "Légèreté, bonne humeur", color: "#4ECDC4" },
-  { id: "anx", label: "Anxiété qui monte", color: "#F4A261" },
-  { id: "irrit", label: "Irritable / à fleur de peau", color: "#E76F51" },
-  { id: "vide", label: "Vide émotionnel", color: "#778DA9" },
-  { id: "hyper", label: "Hyperfocus / tunnel", color: "#C77DFF" },
-  { id: "crashm", label: "Crash mental / brouillard", color: "#457B9D" },
-  { id: "rien", label: "Pas d'effet perceptible", color: "#ADB5BD" },
-];
-
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface SuiviEntry {
   id: number;
   timestamp: string;
+  date: string;
   prise: string;
   dose: Dose;
   reasons: string[];
-  quad: string | null;
-  emo: string | null;
   note: string;
-  phys: string[];
-  ment: string[];
 }
 
 type Screen = "home" | "log" | "history" | "insights";
@@ -181,6 +100,11 @@ function isToday(ts: string): boolean {
 function nowTime(): string {
   const n = new Date();
   return `${String(n.getHours()).padStart(2, "0")}:${String(n.getMinutes()).padStart(2, "0")}`;
+}
+
+function nowDate(): string {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
 }
 
 function loadEntries(): SuiviEntry[] {
@@ -275,14 +199,10 @@ export function SuiviPage() {
   const [step, setStep] = useState(1);
   const [dose, setDose] = useState<Dose | null>(null);
   const [time, setTime] = useState(nowTime);
+  const [date, setDate] = useState(nowDate);
   const [openCat, setOpenCat] = useState<string | null>(null);
   const [reasons, setReasons] = useState<string[]>([]);
-  const [quad, setQuad] = useState<string | null>(null);
-  const [emo, setEmo] = useState<string | null>(null);
   const [note, setNote] = useState("");
-  const [effId, setEffId] = useState<number | null>(null);
-  const [phys, setPhys] = useState<string[]>([]);
-  const [ment, setMent] = useState<string[]>([]);
   const [showData, setShowData] = useState(false);
   const [importTxt, setImportTxt] = useState("");
 
@@ -300,10 +220,9 @@ export function SuiviPage() {
     setDose(null);
     setOpenCat(null);
     setReasons([]);
-    setQuad(null);
-    setEmo(null);
     setNote("");
     setTime(nowTime());
+    setDate(nowDate());
   }
 
   function toggleR(catId: string, sub: string) {
@@ -317,26 +236,15 @@ export function SuiviPage() {
       {
         id: Date.now(),
         timestamp: new Date().toISOString(),
+        date,
         prise: time,
         dose,
         reasons,
-        quad,
-        emo,
         note,
-        phys: [],
-        ment: [],
       },
       ...entries,
     ]);
-    setStep(5);
-  }
-
-  function submitEff() {
-    if (effId === null) return;
-    save(entries.map((e) => (e.id === effId ? { ...e, phys, ment } : e)));
-    setEffId(null);
-    setPhys([]);
-    setMent([]);
+    setStep(4);
   }
 
   function exportData() {
@@ -364,13 +272,8 @@ export function SuiviPage() {
     const top = Object.entries(rc)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5);
-    const ec: Record<string, number> = {};
-    entries.forEach((e) => {
-      if (e.emo) ec[e.emo] = (ec[e.emo] || 0) + 1;
-    });
-    const topE = Object.entries(ec).sort((a, b) => b[1] - a[1])[0];
     const avg = entries.reduce((a, e) => a + (e.dose || 0), 0) / entries.length;
-    return { top, topE, avg };
+    return { top, avg };
   }
 
   const PG: React.CSSProperties = { minHeight: "100vh", padding: "50px 20px 48px" };
@@ -500,86 +403,6 @@ export function SuiviPage() {
       </motion.div>
     );
 
-  // ── Écran effets ──────────────────────────────────────────────────────────
-
-  if (effId !== null)
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        style={{ ...PG, background: "linear-gradient(160deg,#E0F7F4,#B8EDF5)" }}
-      >
-        <div style={{ maxWidth: 440, margin: "0 auto" }}>
-          <Back
-            onClick={() => {
-              setEffId(null);
-              setPhys([]);
-              setMent([]);
-            }}
-          />
-          <h2
-            className="font-calligraphic"
-            style={{ fontSize: 24, color: "#1a1a2e", margin: "0 0 4px" }}
-          >
-            Quelques heures plus tard
-          </h2>
-          <p style={{ color: "#888", margin: "0 0 24px", fontSize: 14 }}>
-            Comment tu te sens maintenant ?
-          </p>
-          {(
-            [
-              ["Physique", PHYS, phys, setPhys],
-              ["Mental & émotionnel", MENT, ment, setMent],
-            ] as [string, (PhysEffect | MentEffect)[], string[], React.Dispatch<React.SetStateAction<string[]>>][]
-          ).map(([lbl, list, sel, setSel]) => (
-            <div key={lbl}>
-              <p
-                style={{
-                  fontSize: 11,
-                  color: "#AAA",
-                  textTransform: "uppercase",
-                  letterSpacing: 1,
-                  margin: "0 0 10px",
-                }}
-              >
-                {lbl}
-              </p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
-                {list.map((ef) => {
-                  const on = sel.includes(ef.id);
-                  return (
-                    <button
-                      key={ef.id}
-                      onClick={() =>
-                        setSel((p) =>
-                          on ? p.filter((x) => x !== ef.id) : [...p, ef.id],
-                        )
-                      }
-                      style={{
-                        padding: "10px 15px",
-                        borderRadius: 50,
-                        border: `2px solid ${on ? ef.color : "#E5E5E5"}`,
-                        background: on ? ef.color + "22" : "#fff",
-                        color: on ? ef.color : "#999",
-                        fontSize: 13,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                      }}
-                    >
-                      {ef.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-          <Btn onClick={submitEff} grad="linear-gradient(135deg,#4ECDC4,#45B7D1)">
-            Enregistrer →
-          </Btn>
-        </div>
-      </motion.div>
-    );
-
   // ── Home ──────────────────────────────────────────────────────────────────
 
   if (screen === "home") {
@@ -665,26 +488,6 @@ export function SuiviPage() {
                     {e.dose}mg{" "}
                     <span style={{ fontWeight: 400, color: "#999" }}>à {e.prise}</span>
                   </span>
-                  {!e.phys?.length && !e.ment?.length && (
-                    <button
-                      onClick={() => {
-                        setEffId(e.id);
-                        setPhys([]);
-                        setMent([]);
-                      }}
-                      style={{
-                        fontSize: 11,
-                        color: "#FF8E53",
-                        background: "none",
-                        border: "1px solid #FF8E53",
-                        borderRadius: 20,
-                        padding: "3px 12px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      + Effets
-                    </button>
-                  )}
                 </div>
               ))}
             </div>
@@ -771,7 +574,7 @@ export function SuiviPage() {
   // ── Log ───────────────────────────────────────────────────────────────────
 
   if (screen === "log") {
-    // Étape 1 — Dose
+    // Étape 1 — Dose + Date + Heure
     if (step === 1)
       return (
         <motion.div
@@ -781,7 +584,7 @@ export function SuiviPage() {
         >
           <div style={{ maxWidth: 400, margin: "0 auto" }}>
             <Back onClick={() => setScreen("home")} />
-            <Dots cur={1} tot={4} />
+            <Dots cur={1} tot={3} />
             <h2
               className="font-calligraphic"
               style={{ fontSize: 30, color: "#1a1a2e", margin: "0 0 6px" }}
@@ -789,7 +592,7 @@ export function SuiviPage() {
               Quelle dose ?
             </h2>
             <p style={{ color: "#BB9980", fontSize: 14, margin: "0 0 24px" }}>
-              Et à quelle heure
+              Date et heure de prise
             </p>
             <div
               style={{
@@ -819,6 +622,41 @@ export function SuiviPage() {
                   <span style={{ fontSize: 13, fontWeight: 400 }}> mg</span>
                 </button>
               ))}
+            </div>
+            <div
+              style={{
+                background: "rgba(255,255,255,0.6)",
+                borderRadius: 18,
+                padding: "15px 18px",
+                marginBottom: 12,
+              }}
+            >
+              <label
+                style={{
+                  fontSize: 11,
+                  color: "#BBB",
+                  textTransform: "uppercase",
+                  letterSpacing: 1,
+                  display: "block",
+                  marginBottom: 5,
+                }}
+              >
+                Date
+              </label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                style={{
+                  fontSize: 18,
+                  fontWeight: 700,
+                  color: "#1a1a2e",
+                  border: "none",
+                  background: "transparent",
+                  width: "100%",
+                  outline: "none",
+                }}
+              />
             </div>
             <div
               style={{
@@ -872,7 +710,7 @@ export function SuiviPage() {
         >
           <div style={{ maxWidth: 440, margin: "0 auto" }}>
             <Back onClick={() => setStep(1)} />
-            <Dots cur={2} tot={4} />
+            <Dots cur={2} tot={3} />
             <h2
               className="font-calligraphic"
               style={{ fontSize: 27, color: "#1a1a2e", margin: "0 0 6px" }}
@@ -1025,144 +863,8 @@ export function SuiviPage() {
         </motion.div>
       );
 
-    // Étape 3 — État émotionnel
-    if (step === 3) {
-      const q = QUADS.find((x) => x.id === quad);
-      return (
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          style={{ ...PG, background: "#FAF8F5" }}
-        >
-          <div style={{ maxWidth: 440, margin: "0 auto" }}>
-            <Back
-              onClick={() => {
-                if (quad && !emo) setQuad(null);
-                else if (emo) setEmo(null);
-                else setStep(2);
-              }}
-            />
-            <Dots cur={3} tot={4} />
-            <h2
-              className="font-calligraphic"
-              style={{ fontSize: 27, color: "#1a1a2e", margin: "0 0 6px" }}
-            >
-              Comment tu te sens ?
-            </h2>
-            <p style={{ color: "#BBB", fontSize: 14, margin: "0 0 20px" }}>
-              {!quad
-                ? "Commence par ton niveau d'énergie"
-                : "Choisis l'émotion la plus proche"}
-            </p>
-            {!quad ? (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
-                {QUADS.map((qx) => (
-                  <button
-                    key={qx.id}
-                    onClick={() => {
-                      setQuad(qx.id);
-                      setEmo(null);
-                    }}
-                    style={{
-                      padding: "24px 12px",
-                      borderRadius: 22,
-                      background: qx.bg,
-                      border: "none",
-                      cursor: "pointer",
-                      textAlign: "center",
-                      boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: "50%",
-                        background: qx.color,
-                        margin: "0 auto 8px",
-                      }}
-                    />
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: qx.color }}>
-                      {qx.label}
-                    </p>
-                    <p style={{ margin: "2px 0 0", fontSize: 12, color: qx.color + "99" }}>
-                      {qx.sub}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 9, marginBottom: 14 }}>
-                  {q?.subs.map((s) => {
-                    const on = emo === s;
-                    return (
-                      <button
-                        key={s}
-                        onClick={() => setEmo(s)}
-                        style={{
-                          padding: "11px 17px",
-                          borderRadius: 50,
-                          border: `2px solid ${on ? q.color : "#E5E0DA"}`,
-                          background: on ? q.color + "1A" : "#fff",
-                          color: on ? q.color : "#666",
-                          fontSize: 14,
-                          fontWeight: on ? 700 : 400,
-                          cursor: "pointer",
-                        }}
-                      >
-                        {s}
-                      </button>
-                    );
-                  })}
-                </div>
-                <button
-                  onClick={() => {
-                    setQuad(null);
-                    setEmo(null);
-                  }}
-                  style={{
-                    fontSize: 13,
-                    color: "#CCC",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  ← Changer de quadrant
-                </button>
-              </div>
-            )}
-            <div style={{ marginTop: 18 }}>
-              <Btn onClick={() => setStep(4)} disabled={quad !== null && !emo}>
-                {!quad ? "Passer →" : emo ? "Continuer →" : "Choisis une émotion"}
-              </Btn>
-              {quad && !emo && (
-                <button
-                  onClick={() => setStep(4)}
-                  style={{
-                    width: "100%",
-                    padding: "13px",
-                    borderRadius: 50,
-                    background: "none",
-                    border: "none",
-                    color: "#CCC",
-                    fontSize: 14,
-                    cursor: "pointer",
-                    marginTop: 4,
-                  }}
-                >
-                  Passer sans choisir
-                </button>
-              )}
-            </div>
-          </div>
-        </motion.div>
-      );
-    }
-
-    // Étape 4 — Note
-    if (step === 4)
+    // Étape 3 — Note
+    if (step === 3)
       return (
         <motion.div
           initial={{ opacity: 0, x: 20 }}
@@ -1170,8 +872,8 @@ export function SuiviPage() {
           style={{ ...PG, background: "linear-gradient(160deg,#F0F4FF,#E8EEFF)" }}
         >
           <div style={{ maxWidth: 400, margin: "0 auto" }}>
-            <Back onClick={() => setStep(3)} />
-            <Dots cur={4} tot={4} />
+            <Back onClick={() => setStep(2)} />
+            <Dots cur={3} tot={3} />
             <h2
               className="font-calligraphic"
               style={{ fontSize: 27, color: "#1a1a2e", margin: "0 0 6px" }}
@@ -1221,9 +923,8 @@ export function SuiviPage() {
                 Résumé
               </p>
               <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#333" }}>
-                {dose}mg · {time}
+                {dose}mg · {date} à {time}
                 {reasons.length > 0 && ` · ${reasons.length} raison${reasons.length > 1 ? "s" : ""}`}
-                {emo && ` · ${emo}`}
               </p>
             </div>
             <Btn onClick={submit} grad="linear-gradient(135deg,#457B9D,#2D6A4F)">
@@ -1233,8 +934,8 @@ export function SuiviPage() {
         </motion.div>
       );
 
-    // Étape 5 — Confirmation
-    if (step === 5)
+    // Étape 4 — Confirmation
+    if (step === 4)
       return (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -1285,7 +986,7 @@ export function SuiviPage() {
                 lineHeight: 1.6,
               }}
             >
-              Reviens dans quelques heures pour noter les effets.
+              Ta prise a été enregistrée.
             </p>
             <button
               onClick={() => setScreen("home")}
@@ -1332,7 +1033,6 @@ export function SuiviPage() {
             </p>
           ) : (
             entries.map((e) => {
-              const hasEff = e.phys?.length > 0 || e.ment?.length > 0;
               const eR = (e.reasons || [])
                 .map((r) => {
                   const [cid, sub] = r.split("||");
@@ -1364,10 +1064,12 @@ export function SuiviPage() {
                         {e.dose}mg
                       </span>
                       <span style={{ fontSize: 14, color: "#BBB", marginLeft: 7 }}>
-                        {e.prise}
+                        à {e.prise}
                       </span>
                     </div>
-                    <span style={{ fontSize: 12, color: "#CCC" }}>{fmtDate(e.timestamp)}</span>
+                    <span style={{ fontSize: 12, color: "#CCC" }}>
+                      {e.date ? e.date : fmtDate(e.timestamp)}
+                    </span>
                   </div>
                   {eR.length > 0 && (
                     <div
@@ -1401,111 +1103,6 @@ export function SuiviPage() {
                         </span>
                       )}
                     </div>
-                  )}
-                  {e.emo && (
-                    <p style={{ margin: "3px 0 5px", fontSize: 13, color: "#888" }}>
-                      État : <strong>{e.emo}</strong>
-                    </p>
-                  )}
-                  {hasEff && (
-                    <div style={{ paddingTop: 7, borderTop: "1px solid #F0F0F0" }}>
-                      {e.phys?.length > 0 && (
-                        <>
-                          <p
-                            style={{
-                              margin: "0 0 4px",
-                              fontSize: 10,
-                              color: "#CCC",
-                              textTransform: "uppercase",
-                              letterSpacing: 1,
-                            }}
-                          >
-                            Physique
-                          </p>
-                          <div
-                            style={{
-                              display: "flex",
-                              flexWrap: "wrap",
-                              gap: 4,
-                              marginBottom: 5,
-                            }}
-                          >
-                            {e.phys.map((id) => {
-                              const ef = PHYS.find((x) => x.id === id);
-                              return ef ? (
-                                <span
-                                  key={id}
-                                  style={{
-                                    padding: "3px 9px",
-                                    borderRadius: 50,
-                                    background: ef.color + "18",
-                                    color: ef.color,
-                                    fontSize: 11,
-                                  }}
-                                >
-                                  {ef.label}
-                                </span>
-                              ) : null;
-                            })}
-                          </div>
-                        </>
-                      )}
-                      {e.ment?.length > 0 && (
-                        <>
-                          <p
-                            style={{
-                              margin: "0 0 4px",
-                              fontSize: 10,
-                              color: "#CCC",
-                              textTransform: "uppercase",
-                              letterSpacing: 1,
-                            }}
-                          >
-                            Mental
-                          </p>
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                            {e.ment.map((id) => {
-                              const ef = MENT.find((x) => x.id === id);
-                              return ef ? (
-                                <span
-                                  key={id}
-                                  style={{
-                                    padding: "3px 9px",
-                                    borderRadius: 50,
-                                    background: ef.color + "18",
-                                    color: ef.color,
-                                    fontSize: 11,
-                                  }}
-                                >
-                                  {ef.label}
-                                </span>
-                              ) : null;
-                            })}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                  {!hasEff && (
-                    <button
-                      onClick={() => {
-                        setEffId(e.id);
-                        setPhys([]);
-                        setMent([]);
-                      }}
-                      style={{
-                        marginTop: 5,
-                        fontSize: 12,
-                        color: "#FF8E53",
-                        background: "none",
-                        border: "1px solid #FF8E53",
-                        borderRadius: 20,
-                        padding: "3px 13px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      + Ajouter les effets
-                    </button>
                   )}
                   {e.note && (
                     <p style={{ margin: "7px 0 0", fontSize: 13, color: "#888", fontStyle: "italic" }}>
@@ -1658,34 +1255,6 @@ export function SuiviPage() {
                   </p>
                 </div>
               </div>
-              {data.topE && (
-                <div
-                  style={{
-                    background: "#fff",
-                    borderRadius: 20,
-                    padding: 18,
-                    boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
-                  }}
-                >
-                  <p
-                    style={{
-                      margin: "0 0 7px",
-                      fontSize: 11,
-                      color: "#CCC",
-                      textTransform: "uppercase",
-                      letterSpacing: 1,
-                    }}
-                  >
-                    État le plus fréquent avant la prise
-                  </p>
-                  <p style={{ margin: "0 0 3px", fontSize: 20, fontWeight: 800, color: "#457B9D" }}>
-                    {data.topE[0]}
-                  </p>
-                  <p style={{ margin: 0, fontSize: 13, color: "#BBB" }}>
-                    {data.topE[1]} fois sur {entries.length} entrées
-                  </p>
-                </div>
-              )}
             </>
           )}
         </div>
