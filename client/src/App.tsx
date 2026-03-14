@@ -5,6 +5,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ConfigProvider } from "./contexts/ConfigContext";
+import { PasswordGate } from "./components/PasswordGate";
 import Home from "./pages/Home";
 import { SuiviPage } from "./pages/Suivi";
 import DrawnByFateLanding from "./pages/drawn-by-fate/DrawnByFateLanding";
@@ -42,17 +43,19 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
-      <ConfigProvider>
-        <ThemeProvider
-          defaultTheme="light"
-          // switchable
-        >
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
-        </ThemeProvider>
-      </ConfigProvider>
+      <PasswordGate>
+        <ConfigProvider>
+          <ThemeProvider
+            defaultTheme="light"
+            // switchable
+          >
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </ThemeProvider>
+        </ConfigProvider>
+      </PasswordGate>
     </ErrorBoundary>
   );
 }
