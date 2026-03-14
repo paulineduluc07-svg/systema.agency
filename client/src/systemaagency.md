@@ -77,6 +77,7 @@ client/src/
 - [x] Dark/Light mode
 - [x] Export PDF
 - [x] Mode offline (localStorage)
+- [x] Prompt Vault — 45 prompts, 13 catégories, gestion dynamique des cats, slider luminosité
 
 ## CE QUI MANQUE / INCOMPLET
 
@@ -111,6 +112,8 @@ client/src/
 
 - wouter nécessite un patch (patches/wouter@3.7.1.patch) — ne pas supprimer ce dossier
 - cross-env nécessaire pour NODE_ENV sur Windows
+- Les dépendances (vite, etc.) peuvent manquer après un clone propre → toujours lancer `pnpm install` avant `pnpm dev` ou `pnpm build`
+- Après un push sur une branche feature, merger dans `main` pour que Vercel redéploie automatiquement
 
 ---
 
@@ -157,3 +160,46 @@ pnpm db:push
 - Suppression PROGRESS.md, todo.md, ideas.md (consolidés ici)
 - Création de ce fichier systemaagency.md
 - **Prochaines étapes** : voir section TÂCHES À FAIRE
+
+### 2026-03-13
+**Branche : `claude/add-systema-prompt-elements-Y4beK`**
+
+#### Ce qui a été fait
+
+**Prompt Vault — `client/src/pages/PromptVault.tsx`**
+
+1. **+14 nouveaux prompts** (31 → 45 au total)
+   - TECH : Webhook Make.com, Refactoring legacy, Intégration API REST
+   - COACHING : Syndrome de l'imposteur, Zones d'énergie
+   - CRÉATIVITÉ : Script YouTube, Campagne de lancement produit
+   - APPRENTISSAGE : Maîtriser un sujet en 30 jours
+   - NEURODIVERS (nouvelle cat.) : TDAH finir une tâche, Surcharge sensorielle, Routine flexible, Conversation difficile
+   - COMMUNICATION (nouvelle cat.) : Email professionnel, Convaincre sans manipuler
+
+2. **+2 nouvelles catégories** : NEURODIVERS (rose #f8a5c2) + COMMUNICATION (vert #badc58)
+
+3. **Gestion dynamique des catégories** (bouton ⚙ CATÉGORIES)
+   - Panneau collapsible avec liste des catégories + nb de prompts par cat
+   - Renommer une catégorie + changer sa couleur (color picker HTML natif)
+   - Supprimer une catégorie (reset filtre sur "TOUS" automatique)
+   - Créer une nouvelle catégorie (label + color picker + touche Entrée)
+   - TOUS est protégé (non supprimable)
+
+4. **Slider de luminosité** sous les onglets catégorie
+   - Plage 10%-100%, valeur affichée en temps réel
+   - Contrôle l'opacité du texte + bordure + fond des onglets inactifs
+   - Les onglets actifs restent toujours nets
+
+5. **Lisibilité des textes améliorée**
+   - Texte prompt : `#ffffff50` → `#ffffffcc`
+   - Tags : `#ffffff33` → `#ffffffbb` + fond semi-transparent
+   - Boutons icônes (✏ ✕ ☆) : beaucoup plus visibles
+   - Compteur résultats, footer, drag handle : tous renforcés
+
+#### État actuel
+- Tout est pushé sur la branche feature
+- Build Vercel validé (`pnpm build` passe sans erreur)
+- **À faire pour déployer** : merger `claude/add-systema-prompt-elements-Y4beK` → `main`
+
+#### Note importante
+Les catégories et prompts ajoutés en cours de session sont **en mémoire (état React)** — ils sont réinitialisés au rechargement. Pour persister les données utilisateur, il faudra brancher sur localStorage ou la base de données.

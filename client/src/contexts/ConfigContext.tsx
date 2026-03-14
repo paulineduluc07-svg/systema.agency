@@ -1,6 +1,8 @@
-import { createContext, useContext, ReactNode, useEffect, useMemo } from 'react';
+import { createContext, useContext, ReactNode, useEffect, useMemo, useCallback } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { AppConfig, DEFAULT_CONFIG, DEFAULT_ZONES, ZoneConfig } from '@/lib/types';
+import { trpc } from '@/lib/trpc';
+import { useAuth } from '@/_core/hooks/useAuth';
 
 interface ConfigContextType {
   config: AppConfig;
@@ -17,7 +19,6 @@ const REFERENCE_HEIGHT = 1080;
 function migrateZonePosition(zone: any): ZoneConfig {
   const pos = zone.position;
   if (pos && typeof pos.x === 'string') {
-    // Convert percentage string → pixel number
     const xPercent = parseFloat(pos.x) / 100;
     const yPercent = parseFloat(pos.y) / 100;
     return {
@@ -54,31 +55,73 @@ function needsMigration(raw: any): boolean {
   return raw.zones.some((z: any) => z.position && typeof z.position.x === 'string');
 }
 
+function applyTheme(config: AppConfig) {
+  document.documentElement.style.setProperty('--primary', config.theme.primary);
+  document.documentElement.style.setProperty('--secondary', config.theme.secondary);
+  document.documentElement.style.setProperty('--background', config.theme.background);
+  document.documentElement.style.setProperty('--card', config.theme.card);
+  document.documentElement.style.setProperty('--foreground', config.theme.text);
+}
+
 export function ConfigProvider({ children }: { children: ReactNode }) {
-  const [rawConfig, setConfig] = usePersistedState<AppConfig>('rpg_app_config', DEFAULT_CONFIG);
+  const { isAuthenticated } = useAuth();
+  const utils = trpc.useUtils();
 
-  // Always compute a safe, migrated config
-  const config = useMemo(() => migrateConfig(rawConfig), [rawConfig]);
+  // Local fallback state (always kept in sync as backup)
+  const [rawConfig, setLocalConfig] = usePersistedState<AppConfig>('rpg_app_config', DEFAULT_CONFIG);
 
-  // Persist migrated version if it changed
+  // Cloud state — load from server when authenticated
+  const { data: serverPrefs, isLoading: serverLoading } = trpc.preferences.get.useQuery(
+    undefined,
+    { enabled: isAuthenticated }
+  );
+
+  const updatePrefsMutation = trpc.preferences.update.useMutation({
+    onSuccess: () => utils.preferences.get.invalidate(),
+  });
+
+  // Compute effective config: server wins when available, local as fallback
+  const config = useMemo(() => {
+    if (isAuthenticated && serverPrefs?.tabConfig) {
+      try {
+        const parsed = JSON.parse(serverPrefs.tabConfig);
+        return migrateConfig(parsed);
+      } catch {
+        // Corrupted server config — fall back to local
+        return migrateConfig(rawConfig);
+      }
+    }
+    return migrateConfig(rawConfig);
+  }, [isAuthenticated, serverPrefs, rawConfig]);
+
+  // On first login: if server has no config yet, push local config to cloud
+  useEffect(() => {
+    if (!isAuthenticated || serverLoading || !serverPrefs) return;
+    if (serverPrefs.tabConfig) return; // already has cloud config
+    // Push local config to server
+    updatePrefsMutation.mutate({ tabConfig: JSON.stringify(rawConfig) });
+  }, [isAuthenticated, serverLoading, serverPrefs]);
+
+  // Migrate local config format if needed
   useEffect(() => {
     if (needsMigration(rawConfig)) {
-      setConfig(config);
+      setLocalConfig(config);
     }
   }, []);
 
-  const updateConfig = (newConfig: AppConfig) => {
-    setConfig(newConfig);
-    document.documentElement.style.setProperty('--primary', newConfig.theme.primary);
-    document.documentElement.style.setProperty('--secondary', newConfig.theme.secondary);
-    document.documentElement.style.setProperty('--background', newConfig.theme.background);
-    document.documentElement.style.setProperty('--card', newConfig.theme.card);
-    document.documentElement.style.setProperty('--foreground', newConfig.theme.text);
-  };
+  const updateConfig = useCallback((newConfig: AppConfig) => {
+    // Always update local storage as backup
+    setLocalConfig(newConfig);
+    // Sync to cloud if authenticated
+    if (isAuthenticated) {
+      updatePrefsMutation.mutate({ tabConfig: JSON.stringify(newConfig) });
+    }
+    applyTheme(newConfig);
+  }, [isAuthenticated, updatePrefsMutation, setLocalConfig]);
 
-  const resetConfig = () => {
+  const resetConfig = useCallback(() => {
     updateConfig(DEFAULT_CONFIG);
-  };
+  }, [updateConfig]);
 
   return (
     <ConfigContext.Provider value={{ config, updateConfig, resetConfig }}>
